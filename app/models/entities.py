@@ -46,14 +46,14 @@ class Device(TimestampMixin, Base):
     __tablename__ = "devices"
 
     id: Mapped[UUID] = mapped_column(GUID(), primary_key=True, default=uuid4)
-    user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    user_id: Mapped[UUID | None] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=True)
     name: Mapped[str]
     model: Mapped[str | None]
     status: Mapped[DeviceStatus] = mapped_column(Enum(DeviceStatus), default=DeviceStatus.PROVISIONED)
     secret_hash: Mapped[str]
     last_seen: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
-    owner: Mapped[User] = relationship(back_populates="devices")
+    owner: Mapped[User | None] = relationship(back_populates="devices")
     sensors: Mapped[List["Sensor"]] = relationship(back_populates="device", cascade="all, delete-orphan")
     actuators: Mapped[List["Actuator"]] = relationship(back_populates="device", cascade="all, delete-orphan")
     automation_profile: Mapped[Optional["AutomationProfile"]] = relationship(

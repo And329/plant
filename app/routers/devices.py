@@ -1,17 +1,17 @@
 ﻿import secrets
-
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.security import get_password_hash
+from app.core.security import get_password_hash, verify_password
 from app.deps import get_current_user, get_db_session
 from app.models.entities import AutomationProfile, Device
 from app.schemas.device import (
     AutomationProfileIn,
     AutomationProfileOut,
+    DeviceClaimIn,
     DeviceCreate,
     DeviceOut,
     DeviceProvisionResponse,
@@ -44,6 +44,26 @@ async def register_device(
     await session.commit()
     await session.refresh(device)
     return DeviceProvisionResponse(device=DeviceOut.model_validate(device), secret=secret)
+
+
+@router.post("/claim", response_model=DeviceOut)
+async def claim_device(
+    payload: DeviceClaimIn,
+    user=Depends(get_current_user),
+    session: AsyncSession = Depends(get_db_session),
+):
+    result = await session.execute(select(Device).where(Device.id == payload.device_id))
+    device = result.scalar_one_or_none()
+    if device is None or not verify_password(payload.device_secret, device.secret_hash):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid device credentials")
+    if device.user_id and device.user_id != user.id:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Device already claimed")
+
+    device.user_id = user.id
+    session.add(device)
+    await session.commit()
+    await session.refresh(device)
+    return DeviceOut.model_validate(device)
 
 
 @router.get("/{device_id}", response_model=DeviceOut)

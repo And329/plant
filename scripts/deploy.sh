@@ -89,10 +89,16 @@ if ! sudo systemctl is-active --quiet docker; then
 fi
 sudo systemctl restart docker >/dev/null 2>&1 || true
 
+CURRENT_USER="${SUDO_USER:-$USER}"
+if ! id -nG "$CURRENT_USER" | tr ' ' '\n' | grep -qx "docker"; then
+  echo "Adding $CURRENT_USER to docker group (re-login required)..."
+  sudo usermod -aG docker "$CURRENT_USER" || true
+fi
+
 echo "Building and starting containers..."
 DOCKER_BUILDKIT=0 COMPOSE_DOCKER_CLI_BUILD=0 docker compose up --build -d
 
 echo "Bootstrapping demo data (safe to rerun)..."
 DOCKER_BUILDKIT=0 COMPOSE_DOCKER_CLI_BUILD=0 docker compose run --rm api python -m scripts.bootstrap_demo
 
-echo "All set! API available at http://localhost:8000/web"
+echo "All set! Api is running at 0.0.0.0:8000"

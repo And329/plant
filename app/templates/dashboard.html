@@ -9,6 +9,11 @@
     Secret (save now!): <code>{{ flash_device.secret }}</code>
   </div>
   {% endif %}
+  {% if claim_message %}
+  <div class="flash {{ 'error' if claim_message.status == 'error' else '' }}">
+    {{ claim_message.text }}
+  </div>
+  {% endif %}
   <div class="card">
     {% if devices %}
     <table>
@@ -51,6 +56,18 @@
       <label>Model</label>
       <input type="text" name="model" placeholder="Raspberry Pi 4" />
       <button type="submit" class="btn">Create device</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>Claim assembled device</h2>
+    <p class="help">Enter the device ID and secret that shipped with your planter to link it to this account.</p>
+    <form method="post" action="/web/devices/claim">
+      <label>Device ID</label>
+      <input type="text" name="device_id" placeholder="UUID" required />
+      <label>Device secret</label>
+      <input type="password" name="device_secret" required />
+      <button type="submit" class="btn">Claim device</button>
     </form>
   </div>
 {% endblock %}

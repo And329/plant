@@ -51,3 +51,8 @@ class AutomationProfileOut(AutomationProfileIn):
 class DeviceProvisionResponse(BaseModel):
     device: DeviceOut
     secret: str
+
+
+class DeviceClaimIn(BaseModel):
+    device_id: UUID
+    device_secret: str

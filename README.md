@@ -60,9 +60,22 @@ app/
 
 ### Web Dashboard
 
-- Navigating to `/web` shows a password-protected UI where you can list devices, view latest sensor readings, and edit automation thresholds.
+- Navigating to `/web` shows a password-protected UI where you can register, sign in, list devices, view latest sensor readings, and edit automation thresholds.
 - Use the **Add device** form to provision additional devices directly from the UI; the new device ID + secret are displayed once and can be typed into the Pi client.
+- Use the **Claim device** form to link factory-provisioned hardware by entering its device ID + secret.
 - Device detail pages show each sensor with its most recent reading plus a form to adjust the soil moisture, temperature, and watering parameters stored in the automation profile.
+
+### Provisioning physical devices
+
+- Manufacturing or ops can pre-create devices with unique credentials via:
+  ```bash
+  python -m scripts.provision_device --name "Planter 101" --model "Model A"
+  ```
+  The script prints the UUID + secret you should bundle with the device. Include `--owner-email you@example.com` if you want to assign it immediately; otherwise it remains unclaimed until a customer uses the claim form in the dashboard.
+
+- After assembly, flash the `device_id` + `device_secret` into the Pi client (or drop them into `/etc/plant-device.json`) and the device can authenticate via `/auth/device`.
+
+- Customers sign up at `/web/register`, log in, and claim the unit using the printed credentials. The claim endpoint verifies the secret and assigns the device to their account without touching the factory bootstrap data.
 
 ### Raspberry Pi Client Stub
 

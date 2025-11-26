@@ -84,6 +84,36 @@ async def login_submit(
     return RedirectResponse(url="/web", status_code=303)
 
 
+@router.get("/register")
+async def register_form(request: Request):
+    return templates.TemplateResponse("register.html", {"request": request})
+
+
+@router.post("/register")
+async def register_submit(
+    request: Request,
+    email: str = Form(...),
+    password: str = Form(...),
+    locale: str | None = Form(None),
+    session: AsyncSession = Depends(get_db_session),
+):
+    existing = await session.execute(select(User).where(User.email == email))
+    if existing.scalar_one_or_none() is not None:
+        return templates.TemplateResponse(
+            "register.html",
+            {"request": request, "error": "Email already registered"},
+            status_code=400,
+        )
+
+    user = User(email=email, password_hash=get_password_hash(password), locale=locale)
+    session.add(user)
+    await session.commit()
+    await session.refresh(user)
+    request.session["user_id"] = str(user.id)
+    request.session["user_email"] = user.email
+    return RedirectResponse(url="/web", status_code=303)
+
+
 @router.get("/logout")
 async def logout(request: Request):
     request.session.clear()
@@ -108,6 +138,7 @@ async def dashboard(
     devices = result.scalars().all()
 
     flash_device = request.session.pop("new_device", None)
+    claim_message = request.session.pop("claim_message", None)
     device_rows = [
         {"device": device, **_device_connection_meta(device, settings.device_offline_seconds)}
         for device in devices
@@ -116,6 +147,7 @@ async def dashboard(
         "request": request,
         "devices": device_rows,
         "flash_device": flash_device,
+        "claim_message": claim_message,
         "device_status_poll_interval": settings.device_offline_seconds // 2 or 10,
     }
     return templates.TemplateResponse("dashboard.html", context)
@@ -138,6 +170,39 @@ async def create_device(
     await session.commit()
     await session.refresh(device)
     request.session["new_device"] = {"name": device.name, "secret": secret, "id": str(device.id)}
+    return RedirectResponse(url="/web", status_code=303)
+
+
+@router.post("/devices/claim")
+async def claim_device_form(
+    request: Request,
+    device_id: str = Form(...),
+    device_secret: str = Form(...),
+    session: AsyncSession = Depends(get_db_session),
+):
+    user = await _get_session_user(request, session)
+    if user is None:
+        return RedirectResponse(url="/web/login", status_code=303)
+
+    try:
+        device_uuid = UUID(device_id.strip())
+    except ValueError:
+        request.session["claim_message"] = {"status": "error", "text": "Device ID must be a valid UUID"}
+        return RedirectResponse(url="/web", status_code=303)
+
+    result = await session.execute(select(Device).where(Device.id == device_uuid))
+    device = result.scalar_one_or_none()
+    if device is None or not verify_password(device_secret, device.secret_hash):
+        request.session["claim_message"] = {"status": "error", "text": "Invalid device credentials"}
+        return RedirectResponse(url="/web", status_code=303)
+    if device.user_id and device.user_id != user.id:
+        request.session["claim_message"] = {"status": "error", "text": "Device is already linked to another account"}
+        return RedirectResponse(url="/web", status_code=303)
+
+    device.user_id = user.id
+    session.add(device)
+    await session.commit()
+    request.session["claim_message"] = {"status": "success", "text": f"{device.name} linked to your account"}
     return RedirectResponse(url="/web", status_code=303)
 
 

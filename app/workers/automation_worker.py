@@ -151,7 +151,8 @@ class AutomationWorker:
             session.add(command)
         for alert in alerts:
             session.add(alert)
-            await self.notification_service.notify_alert(device.owner, alert)
+            if device.owner is not None:
+                await self.notification_service.notify_alert(device.owner, alert)
         if commands or alerts:
             await session.commit()
 
