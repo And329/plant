@@ -124,13 +124,22 @@ Extend `AutomationWorker` and `NotificationService` to match production needs (a
    docker compose run --rm api python -m scripts.bootstrap_db
    ```
    Append `--seed-demo` if you want the sample user/device for smoke testing. The shared `plant-db` volume stores `data/plant.db`, so data persists across restarts.
-4. Visit `http://localhost:8000/web` and log in with the demo credentials printed by the bootstrap script.
+4. Place TLS certificates for the built-in Nginx reverse proxy:
+   - Copy your production `fullchain.pem` and `privkey.pem` into `infra/nginx/certs/`.
+   - For local testing, create a self-signed pair:
+     ```bash
+     mkdir -p infra/nginx/certs
+     openssl req -x509 -newkey rsa:4096 -keyout infra/nginx/certs/privkey.pem \
+         -out infra/nginx/certs/fullchain.pem -days 365 -nodes -subj "/CN=localhost"
+     ```
+   - Nginx listens on ports 80/443 and proxies to the FastAPI container, so browse via `https://localhost/web` (HTTP is redirected to HTTPS). Update `infra/nginx/default.conf` if you want to lock the `server_name`.
+5. Visit `https://localhost/web` and log in with the demo credentials printed by the bootstrap script.
 
-The compose file also starts the automation worker service, so watering/light rules run automatically. Adjust `docker-compose.yml` if you prefer an external PostgreSQL instance or managed Redis.
+The compose file also starts the automation worker and an Nginx TLS proxy, so watering/light rules run automatically and traffic terminates at HTTPS. Adjust `docker-compose.yml` if you prefer a different proxy (or direct exposure), external PostgreSQL, or managed Redis.
 
 ### One-command bootstrap
 
-Run `scripts/deploy.sh` on a new machine to generate `.env` with random secrets, build the Docker images, start the stack, and seed the demo data automatically:
+Run `scripts/deploy.sh` on a new machine to generate `.env` with random secrets, build the Docker images, start the stack, and seed the demo data automatically. The script now performs `docker compose down -v` before rebuilding so the SQLite schema stays in sync with code changes:
 
 ```bash
 chmod +x scripts/deploy.sh

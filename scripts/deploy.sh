@@ -35,7 +35,7 @@ PLANT_JWT_SECRET_KEY=$JWT_SECRET
 PLANT_ACCESS_TOKEN_EXPIRE_MINUTES=15
 PLANT_REFRESH_TOKEN_EXPIRE_MINUTES=20160
 PLANT_SESSION_SECRET_KEY=$SESSION_SECRET
-PLANT_ADMIN_EMAILS=
+PLANT_ADMIN_EMAILS=[]
 EOF
 else
   echo ".env already exists, keeping existing secrets."
@@ -95,6 +95,9 @@ if ! id -nG "$CURRENT_USER" | tr ' ' '\n' | grep -qx "docker"; then
   echo "Adding $CURRENT_USER to docker group (re-login required)..."
   sudo usermod -aG docker "$CURRENT_USER" || true
 fi
+
+echo "Stopping existing containers and clearing volumes (fresh deploy)..."
+DOCKER_BUILDKIT=0 COMPOSE_DOCKER_CLI_BUILD=0 docker compose down -v || true
 
 echo "Building and starting containers..."
 DOCKER_BUILDKIT=0 COMPOSE_DOCKER_CLI_BUILD=0 docker compose up --build -d

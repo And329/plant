@@ -2,6 +2,7 @@
 
 from fastapi import FastAPI
 from starlette.middleware.sessions import SessionMiddleware
+from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
 from app.core.config import get_settings
 from app.deps import automation_engine
@@ -24,6 +25,7 @@ def create_app() -> FastAPI:
         secret_key=settings.session_secret_key,
         session_cookie="plant_session",
     )
+    app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
     app.include_router(auth.router)
     app.include_router(telemetry.router)
     app.include_router(commands.router)
