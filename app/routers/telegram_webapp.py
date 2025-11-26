@@ -35,7 +35,6 @@ async def _require_bot_token(session: AsyncSession) -> str:
 
 def _verify_init_data(init_data: str, bot_token: str) -> dict:
     if not init_data:
-        logger.warning("Telegram session init data missing. Payload=%r", payload)
         raise HTTPException(status_code=400, detail="Missing init data")
     parsed = dict(parse_qsl(init_data, keep_blank_values=True))
     hash_value = parsed.pop("hash", None)
@@ -78,6 +77,8 @@ async def telegram_session(
 ):
     payload = await request.json()
     init_data = payload.get("init_data", "")
+    if not init_data:
+        logger.warning("Telegram session init data missing. Payload=%r", payload)
     try:
         bot_token = await _require_bot_token(session)
     except HTTPException as exc:
