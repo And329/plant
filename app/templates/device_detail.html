@@ -1,0 +1,198 @@
+﻿{% extends "base.html" %}
+{% block title %}Device - Plant Control{% endblock %}
+{% block content %}
+  <a href="/web">&larr; Back</a>
+  <h1>
+    {{ device.name }}
+    <span
+      class="badge {{ 'online' if device_status.connected else 'offline' }}"
+      data-device-detail-badge="{{ device.id }}"
+    >
+      {{ device_status.status }}
+    </span>
+  </h1>
+  <p class="meta">
+    Last seen <span data-device-detail-last-seen="{{ device.id }}">{{ device_status.last_seen }}</span>
+  </p>
+  {% if flash_message %}
+  <div class="flash">{{ flash_message }}</div>
+  {% endif %}
+
+  <div class="card">
+    <h2>Current sensors</h2>
+    {% if sensors %}
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Value</th>
+          <th>Last update</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for sensor in sensors %}
+        <tr>
+          <td>{{ sensor.type.value }}</td>
+          <td>
+            {% if readings[sensor.id] %}
+              {{ readings[sensor.id].value }} {{ sensor.unit }}
+            {% else %}
+              —
+            {% endif %}
+          </td>
+          <td>
+            {% if readings[sensor.id] %}
+              {{ readings[sensor.id].recorded }}
+            {% else %}
+              —
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p>No sensors registered.</p>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <h2>Manual controls</h2>
+    {% if actuators %}
+    <table>
+      <thead>
+        <tr>
+          <th>Actuator</th>
+          <th>State</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for actuator in actuators %}
+        <tr>
+          <td>{{ actuator.type.value }}</td>
+          <td>{{ actuator.state }}</td>
+          <td class="actions">
+            <form method="post" action="/web/devices/{{ device.id }}/commands">
+              <input type="hidden" name="actuator_id" value="{{ actuator.id }}" />
+              <input type="hidden" name="command" value="on" />
+              <button type="submit" class="btn small">Turn on</button>
+            </form>
+            <form method="post" action="/web/devices/{{ device.id }}/commands">
+              <input type="hidden" name="actuator_id" value="{{ actuator.id }}" />
+              <input type="hidden" name="command" value="off" />
+              <button type="submit" class="btn small secondary">Turn off</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p>No actuators registered for this device.</p>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <h2>Automation profiles</h2>
+    <form method="post" action="/web/devices/{{ device.id }}/automation" class="profile-form">
+      <div class="profile-section">
+        <h3>1. Watering</h3>
+        <p class="help">Keep soil moisture between thresholds; when it dips below the minimum we water for a fixed duration.</p>
+        <label>Soil moisture min (%)</label>
+        <input type="number" step="0.1" name="soil_moisture_min" value="{{ profile.soil_moisture_min if profile else '' }}" required />
+        <label>Soil moisture max (%)</label>
+        <input type="number" step="0.1" name="soil_moisture_max" value="{{ profile.soil_moisture_max if profile else '' }}" required />
+        <label>Minimum water level (%)</label>
+        <input type="number" step="0.1" name="min_water_level" value="{{ profile.min_water_level if profile else '' }}" />
+        <label>Watering duration (seconds)</label>
+        <input type="number" name="watering_duration_sec" value="{{ profile.watering_duration_sec if profile else '' }}" />
+        <label>Watering cooldown (minutes)</label>
+        <input type="number" name="watering_cooldown_min" value="{{ profile.watering_cooldown_min if profile else '' }}" />
+      </div>
+
+      <div class="profile-section">
+        <h3>2. Temperature alerts</h3>
+        <p class="help">We'll surface alerts if the ambient temperature leaves this safe band.</p>
+        <label>Temperature min (°C)</label>
+        <input type="number" step="0.1" name="temp_min" value="{{ profile.temp_min if profile else '' }}" required />
+        <label>Temperature max (°C)</label>
+        <input type="number" step="0.1" name="temp_max" value="{{ profile.temp_max if profile else '' }}" required />
+      </div>
+
+      <div class="profile-section">
+        <h3>3. Light</h3>
+        <p class="help">Define a simple on/off interval for the grow light.</p>
+        <label>Light on interval (minutes)</label>
+        <input type="number" min="1" name="lamp_on_minutes" value="{{ lamp_schedule.get('on_minutes') if lamp_schedule else '' }}" />
+        <label>Light off interval (minutes)</label>
+        <input type="number" min="1" name="lamp_off_minutes" value="{{ lamp_schedule.get('off_minutes') if lamp_schedule else '' }}" />
+      </div>
+      <button type="submit" class="btn">Save changes</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>Alerts</h2>
+    {% if alerts %}
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Severity</th>
+          <th>Message</th>
+          <th>Created</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for alert in alerts %}
+        <tr>
+          <td>{{ alert.type.value }}</td>
+          <td>{{ alert.severity.value }}</td>
+          <td>{{ alert.message }}</td>
+          <td>{{ alert.created_at }}</td>
+          <td>{{ 'Resolved' if alert.resolved_at else 'Active' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p>No alerts yet.</p>
+    {% endif %}
+  </div>
+{% endblock %}
+{% block extra_scripts %}
+<script>
+  const detailDeviceId = "{{ device.id }}";
+  const pollInterval = {{ device_status_poll_interval|default(10) }} * 1000;
+  async function refreshDetailStatus() {
+    try {
+      const response = await fetch("/web/devices/statuses", {
+        headers: { "Accept": "application/json" },
+        credentials: "same-origin",
+      });
+      if (!response.ok) return;
+      const data = await response.json();
+      const meta = data[detailDeviceId];
+      if (!meta) return;
+      const badge = document.querySelector(`[data-device-detail-badge="${detailDeviceId}"]`);
+      if (badge) {
+        badge.textContent = meta.status;
+        badge.classList.toggle("online", meta.connected);
+        badge.classList.toggle("offline", !meta.connected);
+      }
+      const lastSeen = document.querySelector(`[data-device-detail-last-seen="${detailDeviceId}"]`);
+      if (lastSeen) {
+        lastSeen.textContent = meta.last_seen;
+      }
+    } catch (err) {
+      console.warn("Failed to update device status", err);
+    }
+  }
+  if (pollInterval > 0) {
+    setInterval(refreshDetailStatus, pollInterval);
+    refreshDetailStatus();
+  }
+</script>
+{% endblock %}

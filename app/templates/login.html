@@ -1,0 +1,20 @@
+﻿{% extends "base.html" %}
+{% block title %}Sign in - Plant Control{% endblock %}
+{% block content %}
+<div class="card" style="max-width: 400px; margin: auto;">
+  <h2>Sign in</h2>
+  {% if error %}
+  <div class="flash" style="background: #fed7d7;">{{ error }}</div>
+  {% endif %}
+  <form method="post">
+    <label>Email</label>
+    <input type="email" name="email" required />
+    <label>Password</label>
+    <input type="password" name="password" required />
+    <button class="btn" type="submit">Sign in</button>
+  </form>
+  <p style="margin-top: 1rem; color: #4a5568;">
+    Demo credentials: <code>demo@plant.local / demo1234</code>
+  </p>
+</div>
+{% endblock %}

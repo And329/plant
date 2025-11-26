@@ -1,0 +1,149 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% block title %}Control panel{% endblock %}</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background: #f4f7f8;
+        margin: 0;
+        padding: 0;
+      }
+      header {
+        background: #2c7a7b;
+        color: #fff;
+        padding: 1rem 2rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      header a {
+        color: #fff;
+        margin-left: 1rem;
+        text-decoration: none;
+        font-weight: bold;
+      }
+      main {
+        padding: 2rem;
+        max-width: 960px;
+        margin: auto;
+      }
+      .card {
+        background: #fff;
+        border-radius: 8px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+        margin-bottom: 1.5rem;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th,
+      td {
+        text-align: left;
+        padding: 0.5rem;
+        border-bottom: 1px solid #e2e8f0;
+      }
+      h1,
+      h2,
+      h3 {
+        color: #2d3748;
+      }
+      .btn {
+        background: #2c7a7b;
+        color: #fff;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      .btn.small {
+        padding: 0.3rem 0.75rem;
+        font-size: 0.85rem;
+      }
+      .btn.secondary {
+        background: #4a5568;
+      }
+      form input,
+      form select {
+        padding: 0.4rem;
+        margin-bottom: 0.6rem;
+        width: 100%;
+        border: 1px solid #cbd5f5;
+        border-radius: 4px;
+      }
+      .flash {
+        padding: 0.5rem 1rem;
+        background: #bee3f8;
+        border-radius: 4px;
+        margin-bottom: 1rem;
+      }
+      .badge {
+        display: inline-block;
+        padding: 0.2rem 0.6rem;
+        border-radius: 999px;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #fff;
+      }
+      .badge.online {
+        background: #38a169;
+      }
+      .badge.offline {
+        background: #e53e3e;
+      }
+      .meta {
+        color: #4a5568;
+        font-size: 0.9rem;
+        margin-top: 0.2rem;
+      }
+      td.actions {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+      }
+      td.actions form {
+        margin: 0;
+      }
+      .profile-form {
+        display: grid;
+        gap: 1rem;
+      }
+      .profile-section {
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        padding: 0.75rem;
+        background: #f8fafc;
+      }
+      .profile-section h3 {
+        margin-top: 0;
+        margin-bottom: 0.4rem;
+      }
+      .profile-section .help {
+        margin: 0 0 0.6rem 0;
+        color: #4a5568;
+        font-size: 0.85rem;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div><strong>Control panel</strong></div>
+      <div>
+        {% if request.session.get('user_email') %}
+        <span>Signed in as {{ request.session.get('user_email') }}</span>
+        <a href="/web">Dashboard</a>
+        <a href="/web/logout">Logout</a>
+        {% endif %}
+      </div>
+    </header>
+    <main>
+      {% block content %}{% endblock %}
+    </main>
+    {% block extra_scripts %}{% endblock %}
+  </body>
+</html>

@@ -1,0 +1,89 @@
+﻿{% extends "base.html" %}
+{% block title %}Dashboard - Plant Control{% endblock %}
+{% block content %}
+  <h1>Устройства</h1>
+  {% if flash_device %}
+  <div class="flash">
+    Device <strong>{{ flash_device.name }}</strong> created.<br />
+    Device ID: <code>{{ flash_device.id }}</code><br />
+    Secret (save now!): <code>{{ flash_device.secret }}</code>
+  </div>
+  {% endif %}
+  <div class="card">
+    {% if devices %}
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Status</th>
+          <th>Last Seen</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in devices %}
+        <tr data-device-row="{{ item.device.id }}">
+          <td>{{ item.device.name }}</td>
+          <td>
+            <span
+              class="badge {{ 'online' if item.connected else 'offline' }}"
+              data-status-badge="{{ item.device.id }}"
+            >
+              {{ item.status }}
+            </span>
+          </td>
+          <td><span data-last-seen="{{ item.device.id }}">{{ item.last_seen }}</span></td>
+          <td><a href="/web/devices/{{ item.device.id }}">Open</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p>No devices yet.</p>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <h2>Add device</h2>
+    <form method="post" action="/web/devices">
+      <label>Name</label>
+      <input type="text" name="name" placeholder="Kitchen basil" required />
+      <label>Model</label>
+      <input type="text" name="model" placeholder="Raspberry Pi 4" />
+      <button type="submit" class="btn">Create device</button>
+    </form>
+  </div>
+{% endblock %}
+{% block extra_scripts %}
+<script>
+  const pollInterval = {{ device_status_poll_interval|default(10) }} * 1000;
+  async function refreshDeviceStatuses() {
+    try {
+      const response = await fetch("/web/devices/statuses", {
+        headers: { "Accept": "application/json" },
+        credentials: "same-origin",
+      });
+      if (!response.ok) return;
+      const data = await response.json();
+      Object.entries(data).forEach(([id, meta]) => {
+        const badge = document.querySelector(`[data-status-badge="${id}"]`);
+        if (badge) {
+          badge.textContent = meta.status;
+          badge.classList.toggle("online", meta.connected);
+          badge.classList.toggle("offline", !meta.connected);
+        }
+        const last = document.querySelector(`[data-last-seen="${id}"]`);
+        if (last) {
+          last.textContent = meta.last_seen;
+        }
+      });
+    } catch (err) {
+      console.warn("Failed to refresh device statuses", err);
+    }
+  }
+  if (pollInterval > 0) {
+    setInterval(refreshDeviceStatuses, pollInterval);
+    refreshDeviceStatuses();
+  }
+</script>
+{% endblock %}
