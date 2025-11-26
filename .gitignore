@@ -2,3 +2,4 @@
 .env
 plant_backend.egg-info
 plant.db
+build

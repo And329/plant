@@ -1,4 +1,4 @@
-﻿[project]
+[project]
 name = "plant-backend"
 version = "0.1.0"
 description = "Automation backend for Raspberry Pi powered plant care devices"
