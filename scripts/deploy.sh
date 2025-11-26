@@ -100,6 +100,6 @@ echo "Building and starting containers..."
 DOCKER_BUILDKIT=0 COMPOSE_DOCKER_CLI_BUILD=0 docker compose up --build -d
 
 echo "Bootstrapping demo data (safe to rerun)..."
-DOCKER_BUILDKIT=0 COMPOSE_DOCKER_CLI_BUILD=0 docker compose run --rm api python -m scripts.bootstrap_demo
+DOCKER_BUILDKIT=0 COMPOSE_DOCKER_CLI_BUILD=0 docker compose run --rm api python -m scripts.bootstrap_db
 
 echo "All set! Api is running at 0.0.0.0:8000"

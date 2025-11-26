@@ -42,9 +42,9 @@ app/
    Set `PLANT_ADMIN_EMAILS` to a comma-separated list (e.g. `admin@example.com,ops@example.com`) so those accounts can access the admin console.
 4. **Initialize the database**:
    ```bash
-   python -m scripts.bootstrap_demo
+   python -m scripts.bootstrap_db
    ```
-   Pass `--seed-demo` if you still want the sample user/device (`python -m scripts.bootstrap_demo --seed-demo`). Otherwise, the database is created with no demo data and you can register through `/web/register`.
+   Pass `--seed-demo` if you still want the sample user/device (`python -m scripts.bootstrap_db --seed-demo`). Otherwise, the database is created with no demo data and you can register through `/web/register`.
 5. **Start the API**:
    ```bash
    uvicorn app.main:app --reload
@@ -121,7 +121,7 @@ Extend `AutomationWorker` and `NotificationService` to match production needs (a
    ```
 3. Run the bootstrap script once to create tables inside the container (re-run whenever you wipe the mounted SQLite volume):
    ```bash
-   docker compose run --rm api python -m scripts.bootstrap_demo
+   docker compose run --rm api python -m scripts.bootstrap_db
    ```
    Append `--seed-demo` if you want the sample user/device for smoke testing. The shared `plant-db` volume stores `data/plant.db`, so data persists across restarts.
 4. Visit `http://localhost:8000/web` and log in with the demo credentials printed by the bootstrap script.
