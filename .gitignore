@@ -1,2 +1,4 @@
 .venv
 .env
+plant_backend.egg-info
+
