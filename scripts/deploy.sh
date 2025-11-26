@@ -1,11 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-cd "$ROOT_DIR"
-
-ENV_FILE="$ROOT_DIR/.env"
-
 ensure_python() {
   if ! command -v python3 >/dev/null 2>&1; then
     echo "python3 not found. Installing via apt..."
@@ -13,6 +8,33 @@ ensure_python() {
     sudo apt-get install -y python3
   fi
 }
+
+DOMAIN="${1:-}"
+ADMIN_EMAILS="${2:-}"
+
+if [[ -z "$DOMAIN" ]]; then
+  read -rp "Enter your public domain (e.g. example.com): " DOMAIN
+fi
+
+if [[ -z "$ADMIN_EMAILS" ]]; then
+  read -rp "Enter admin emails (comma-separated): " ADMIN_EMAILS
+fi
+
+ensure_python
+
+ADMIN_JSON=$(ADMIN_EMAILS="$ADMIN_EMAILS" python3 - <<'PY'
+import json, os
+raw = os.environ.get("ADMIN_EMAILS", "")
+emails = [item.strip() for item in raw.split(",") if item.strip()]
+print(json.dumps(emails))
+PY
+)
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT_DIR"
+
+ENV_FILE="$ROOT_DIR/.env"
+NGINX_CONF="$ROOT_DIR/infra/nginx/default.conf"
 
 generate_secret() {
 python3 - <<'PY'
@@ -35,11 +57,38 @@ PLANT_JWT_SECRET_KEY=$JWT_SECRET
 PLANT_ACCESS_TOKEN_EXPIRE_MINUTES=15
 PLANT_REFRESH_TOKEN_EXPIRE_MINUTES=20160
 PLANT_SESSION_SECRET_KEY=$SESSION_SECRET
-PLANT_ADMIN_EMAILS=[]
+PLANT_ADMIN_EMAILS=$ADMIN_JSON
 EOF
 else
-  echo ".env already exists, keeping existing secrets."
+  echo ".env already exists, updating admin emails."
+  python3 - "$ENV_FILE" "$ADMIN_JSON" <<'PY'
+import sys, pathlib
+env_path = pathlib.Path(sys.argv[1])
+value = sys.argv[2]
+lines = env_path.read_text().splitlines()
+for idx, line in enumerate(lines):
+  if line.startswith("PLANT_ADMIN_EMAILS="):
+    lines[idx] = f"PLANT_ADMIN_EMAILS={value}"
+    break
+else:
+  lines.append(f"PLANT_ADMIN_EMAILS={value}")
+env_path.write_text("\n".join(lines) + "\n")
+PY
 fi
+
+python3 - "$DOMAIN" "$NGINX_CONF" <<'PY'
+import sys, pathlib, re
+domain, path = sys.argv[1:3]
+if not domain:
+  sys.exit(0)
+conf = pathlib.Path(path).read_text()
+count = {"n": 0}
+def repl(match):
+  count["n"] += 1
+  return f"server_name {domain};" if count["n"] <= 2 else match.group(0)
+conf = re.sub(r"server_name\s+[^;]+;", repl, conf, count=2)
+pathlib.Path(path).write_text(conf)
+PY
 
 if ! command -v docker >/dev/null 2>&1; then
   echo "Docker not found. Installing Docker CE..."
@@ -105,4 +154,4 @@ DOCKER_BUILDKIT=0 COMPOSE_DOCKER_CLI_BUILD=0 docker compose up --build -d
 echo "Bootstrapping demo data (safe to rerun)..."
 DOCKER_BUILDKIT=0 COMPOSE_DOCKER_CLI_BUILD=0 docker compose run --rm api python -m scripts.bootstrap_db
 
-echo "All set! Api is running at 0.0.0.0:8000"
+echo "All set! API is running behind Nginx. Visit https://${DOMAIN:-your-domain}/web"
