@@ -54,25 +54,31 @@ https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo $VERSION_CO
   sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 fi
 
-ensure_overlay() {
-  if lsmod | grep -q "^overlay"; then
-    return
-  fi
-  echo "Attempting to load overlay kernel module..."
-  if ! sudo modprobe overlay 2>/dev/null; then
-    echo "Installing extra kernel modules for overlayfs..."
-    sudo apt-get update
-    sudo apt-get install -y "linux-modules-extra-$(uname -r)" || true
-    if ! sudo modprobe overlay 2>/dev/null; then
-      echo "Overlayfs unavailable; configuring Docker to use vfs storage driver."
-      sudo mkdir -p /etc/docker
-      cat <<'EOF' | sudo tee /etc/docker/daemon.json >/dev/null
+configure_vfs_storage() {
+  echo "Configuring Docker to use the vfs storage driver..."
+  sudo mkdir -p /etc/docker
+  cat <<'EOF' | sudo tee /etc/docker/daemon.json >/dev/null
 {
   "storage-driver": "vfs"
 }
 EOF
+}
+
+ensure_overlay() {
+  if sudo modprobe overlay 2>/dev/null; then
+    return
+  fi
+  pkg="linux-modules-extra-$(uname -r)"
+  if apt-cache policy "$pkg" >/dev/null 2>&1; then
+    echo "Installing $pkg to enable overlayfs..."
+    sudo apt-get update
+    sudo apt-get install -y "$pkg" || true
+    if sudo modprobe overlay 2>/dev/null; then
+      return
     fi
   fi
+  echo "Overlayfs unavailable on this kernel."
+  configure_vfs_storage
 }
 
 ensure_overlay
