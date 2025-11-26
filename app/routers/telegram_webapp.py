@@ -6,6 +6,8 @@ import json
 from urllib.parse import parse_qsl
 from uuid import UUID
 
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse
 from fastapi.templating import Jinja2Templates
@@ -21,6 +23,7 @@ from app.services.app_settings import get_setting
 
 templates = Jinja2Templates(directory="app/templates")
 router = APIRouter(prefix="/telegram", tags=["telegram"], include_in_schema=False)
+logger = logging.getLogger("telegram-webapp")
 
 
 async def _require_bot_token(session: AsyncSession) -> str:
@@ -32,17 +35,21 @@ async def _require_bot_token(session: AsyncSession) -> str:
 
 def _verify_init_data(init_data: str, bot_token: str) -> dict:
     if not init_data:
+        logger.warning("Telegram session init data missing.")
         raise HTTPException(status_code=400, detail="Missing init data")
     parsed = dict(parse_qsl(init_data, keep_blank_values=True))
     hash_value = parsed.pop("hash", None)
     if not hash_value:
+        logger.warning("Telegram init data missing hash.")
         raise HTTPException(status_code=400, detail="Invalid init data")
     data_check_string = "\n".join(f"{k}={v}" for k, v in sorted(parsed.items()))
     secret_key = hashlib.sha256(bot_token.encode()).digest()
     signature = hmac.new(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
     if signature != hash_value:
+        logger.warning("Telegram init data bad signature.")
         raise HTTPException(status_code=400, detail="Bad signature")
     if "user" not in parsed:
+        logger.warning("Telegram init data missing user payload.")
         raise HTTPException(status_code=400, detail="No user payload")
     try:
         return json.loads(parsed["user"])
