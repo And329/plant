@@ -54,10 +54,34 @@ https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo $VERSION_CO
   sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 fi
 
+ensure_overlay() {
+  if lsmod | grep -q "^overlay"; then
+    return
+  fi
+  echo "Attempting to load overlay kernel module..."
+  if ! sudo modprobe overlay 2>/dev/null; then
+    echo "Installing extra kernel modules for overlayfs..."
+    sudo apt-get update
+    sudo apt-get install -y "linux-modules-extra-$(uname -r)" || true
+    if ! sudo modprobe overlay 2>/dev/null; then
+      echo "Overlayfs unavailable; configuring Docker to use vfs storage driver."
+      sudo mkdir -p /etc/docker
+      cat <<'EOF' | sudo tee /etc/docker/daemon.json >/dev/null
+{
+  "storage-driver": "vfs"
+}
+EOF
+    fi
+  fi
+}
+
+ensure_overlay
+
 if ! sudo systemctl is-active --quiet docker; then
   echo "Starting Docker daemon..."
   sudo systemctl start docker
 fi
+sudo systemctl restart docker >/dev/null 2>&1 || true
 
 echo "Building and starting containers..."
 docker compose up --build -d
