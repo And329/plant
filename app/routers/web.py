@@ -1,5 +1,6 @@
 ﻿from __future__ import annotations
 
+import json
 import secrets
 from datetime import datetime, timezone
 from typing import Any
@@ -12,10 +13,13 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.core.config import Settings
 from app.core.security import get_password_hash, verify_password
 from app.deps import get_app_settings, get_db_session
 from app.models.entities import Alert, Actuator, AutomationProfile, Command, Device, Sensor, SensorReading, User
 from app.models.enums import CommandType
+from app.services.app_settings import delete_setting, get_setting, set_setting
+from app.services.provisioning import ensure_default_components
 
 router = APIRouter(prefix="/web", tags=["web"])
 templates = Jinja2Templates(directory="app/templates")
@@ -50,12 +54,30 @@ def _time_since(moment: datetime | None) -> tuple[str, int | None]:
 def _device_connection_meta(device: Device, offline_seconds: int) -> dict[str, Any]:
     last_seen_label, seconds = _time_since(device.last_seen)
     connected = seconds is not None and seconds <= offline_seconds
+    iso_value = None
+    if device.last_seen:
+        moment = device.last_seen
+        if moment.tzinfo is None:
+            moment = moment.replace(tzinfo=timezone.utc)
+        else:
+            moment = moment.astimezone(timezone.utc)
+        iso_value = moment.isoformat()
     return {
         "status": "connected" if connected else "disconnected",
         "last_seen": last_seen_label,
         "connected": connected,
-        "last_seen_iso": device.last_seen.isoformat() if device.last_seen else None,
+        "last_seen_iso": iso_value,
     }
+
+
+def _user_is_admin(user: User | None, settings: Settings) -> bool:
+    return bool(user and user.email in (settings.admin_emails or []))
+
+
+def _set_session_user(request: Request, user: User, settings: Settings) -> None:
+    request.session["user_id"] = str(user.id)
+    request.session["user_email"] = user.email
+    request.session["is_admin"] = _user_is_admin(user, settings)
 
 
 @router.get("/login")
@@ -69,6 +91,7 @@ async def login_submit(
     email: str = Form(...),
     password: str = Form(...),
     session: AsyncSession = Depends(get_db_session),
+    settings: Settings = Depends(get_app_settings),
 ):
     result = await session.execute(select(User).where(User.email == email))
     user = result.scalar_one_or_none()
@@ -79,8 +102,7 @@ async def login_submit(
             status_code=400,
         )
 
-    request.session["user_id"] = str(user.id)
-    request.session["user_email"] = user.email
+    _set_session_user(request, user, settings)
     return RedirectResponse(url="/web", status_code=303)
 
 
@@ -96,6 +118,7 @@ async def register_submit(
     password: str = Form(...),
     locale: str | None = Form(None),
     session: AsyncSession = Depends(get_db_session),
+    settings: Settings = Depends(get_app_settings),
 ):
     existing = await session.execute(select(User).where(User.email == email))
     if existing.scalar_one_or_none() is not None:
@@ -109,8 +132,7 @@ async def register_submit(
     session.add(user)
     await session.commit()
     await session.refresh(user)
-    request.session["user_id"] = str(user.id)
-    request.session["user_email"] = user.email
+    _set_session_user(request, user, settings)
     return RedirectResponse(url="/web", status_code=303)
 
 
@@ -137,8 +159,8 @@ async def dashboard(
     )
     devices = result.scalars().all()
 
-    flash_device = request.session.pop("new_device", None)
     claim_message = request.session.pop("claim_message", None)
+    dashboard_notice = request.session.pop("dashboard_notice", None)
     device_rows = [
         {"device": device, **_device_connection_meta(device, settings.device_offline_seconds)}
         for device in devices
@@ -146,31 +168,129 @@ async def dashboard(
     context = {
         "request": request,
         "devices": device_rows,
-        "flash_device": flash_device,
         "claim_message": claim_message,
+        "dashboard_notice": dashboard_notice,
         "device_status_poll_interval": settings.device_offline_seconds // 2 or 10,
     }
     return templates.TemplateResponse("dashboard.html", context)
 
 
-@router.post("/devices")
-async def create_device(
+@router.get("/admin")
+async def admin_panel(
     request: Request,
-    name: str = Form(...),
-    model: str | None = Form(None),
     session: AsyncSession = Depends(get_db_session),
+    settings: Settings = Depends(get_app_settings),
 ):
     user = await _get_session_user(request, session)
     if user is None:
         return RedirectResponse(url="/web/login", status_code=303)
+    if not _user_is_admin(user, settings):
+        return RedirectResponse(url="/web", status_code=303)
 
-    secret = secrets.token_urlsafe(16)
-    device = Device(name=name, model=model, user_id=user.id, secret_hash=get_password_hash(secret))
+    devices_result = await session.execute(
+        select(Device)
+        .options(selectinload(Device.owner), selectinload(Device.sensors), selectinload(Device.actuators))
+        .order_by(Device.created_at.desc())
+    )
+    devices = devices_result.scalars().all()
+    unclaimed = [device for device in devices if device.user_id is None]
+    device_cards = [
+        {
+            "device": device,
+            "owner_email": device.owner.email if device.owner else None,
+            "connection": _device_connection_meta(device, settings.device_offline_seconds),
+            "sensor_count": len(device.sensors or []),
+            "actuator_count": len(device.actuators or []),
+        }
+        for device in devices
+    ]
+    admin_flash = request.session.pop("admin_flash", None)
+    telegram_token = await get_setting(session, "telegram_bot_token")
+    context = {
+        "request": request,
+        "unclaimed": unclaimed,
+        "admin_flash": admin_flash,
+        "devices": device_cards,
+        "telegram_bot_token": telegram_token or "",
+    }
+    return templates.TemplateResponse("admin.html", context)
+
+
+@router.post("/admin/devices")
+async def admin_provision_device(
+    request: Request,
+    name: str = Form(...),
+    model: str | None = Form(None),
+    owner_email: str | None = Form(None),
+    session: AsyncSession = Depends(get_db_session),
+    settings: Settings = Depends(get_app_settings),
+):
+    user = await _get_session_user(request, session)
+    if user is None:
+        return RedirectResponse(url="/web/login", status_code=303)
+    if not _user_is_admin(user, settings):
+        return RedirectResponse(url="/web", status_code=303)
+
+    owner_id = None
+    owner_email = owner_email.strip() if owner_email else None
+    if owner_email:
+        result = await session.execute(select(User).where(User.email == owner_email))
+        owner = result.scalar_one_or_none()
+        if owner is None:
+            request.session["admin_flash"] = {"status": "error", "text": f"No user with email {owner_email}"}
+            return RedirectResponse(url="/web/admin", status_code=303)
+        owner_id = owner.id
+
+    secret = secrets.token_urlsafe(24)
+    device = Device(name=name, model=model, user_id=owner_id, secret_hash=get_password_hash(secret))
     session.add(device)
+    sensors, actuators = await ensure_default_components(session, device)
     await session.commit()
     await session.refresh(device)
-    request.session["new_device"] = {"name": device.name, "secret": secret, "id": str(device.id)}
-    return RedirectResponse(url="/web", status_code=303)
+
+    base_url = str(request.base_url).rstrip("/")
+    base_url = str(request.base_url).rstrip("/")
+    config_snippet = json.dumps(
+        {
+            "api_base_url": base_url,
+            "device_id": str(device.id),
+            "device_secret": secret,
+            "sensor_ids": {sensor.type.value: str(sensor.id) for sensor in sensors},
+            "actuator_ids": {actuator.type.value: str(actuator.id) for actuator in actuators},
+        },
+        indent=2,
+    )
+    request.session["admin_flash"] = {
+        "status": "success",
+        "text": f"Device {device.name} created",
+        "device_id": str(device.id),
+        "secret": secret,
+        "config": config_snippet,
+    }
+    return RedirectResponse(url="/web/admin", status_code=303)
+
+
+@router.post("/admin/settings/telegram")
+async def admin_update_telegram(
+    request: Request,
+    bot_token: str = Form(""),
+    session: AsyncSession = Depends(get_db_session),
+    settings: Settings = Depends(get_app_settings),
+):
+    user = await _get_session_user(request, session)
+    if user is None:
+        return RedirectResponse(url="/web/login", status_code=303)
+    if not _user_is_admin(user, settings):
+        return RedirectResponse(url="/web", status_code=303)
+
+    token = bot_token.strip()
+    if token:
+        await set_setting(session, "telegram_bot_token", token)
+        request.session["admin_flash"] = {"status": "success", "text": "Telegram bot token updated."}
+    else:
+        await delete_setting(session, "telegram_bot_token")
+        request.session["admin_flash"] = {"status": "success", "text": "Telegram bot token removed."}
+    return RedirectResponse(url="/web/admin", status_code=303)
 
 
 @router.post("/devices/claim")
@@ -203,6 +323,27 @@ async def claim_device_form(
     session.add(device)
     await session.commit()
     request.session["claim_message"] = {"status": "success", "text": f"{device.name} linked to your account"}
+    return RedirectResponse(url="/web", status_code=303)
+
+
+@router.post("/devices/{device_id}/delete")
+async def delete_device(
+    request: Request,
+    device_id: UUID,
+    session: AsyncSession = Depends(get_db_session),
+):
+    user = await _get_session_user(request, session)
+    if user is None:
+        return RedirectResponse(url="/web/login", status_code=303)
+
+    device = await _load_device(session, device_id, user)
+    if device is None:
+        request.session["dashboard_notice"] = {"status": "error", "text": "Device not found or not owned."}
+        return RedirectResponse(url="/web", status_code=303)
+
+    await session.delete(device)
+    await session.commit()
+    request.session["dashboard_notice"] = {"status": "success", "text": f"{device.name} removed."}
     return RedirectResponse(url="/web", status_code=303)
 
 

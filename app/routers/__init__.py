@@ -1,3 +1,13 @@
-from . import alerts, auth, commands, devices, telemetry, users, web
+from . import alerts, auth, commands, devices, landing, telegram_webapp, telemetry, users, web
 
-__all__ = ["alerts", "auth", "commands", "devices", "telemetry", "users", "web"]
+__all__ = [
+    "alerts",
+    "auth",
+    "commands",
+    "devices",
+    "landing",
+    "telegram_webapp",
+    "telemetry",
+    "users",
+    "web",
+]

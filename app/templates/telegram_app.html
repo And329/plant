@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+{% block title %}Telegram Panel{% endblock %}
+{% block content %}
+  <section class="mx-auto max-w-3xl space-y-6 rounded-3xl border border-white/10 bg-white/5 p-6 shadow-2xl shadow-black/30">
+    <div class="space-y-2">
+      <p class="text-xs uppercase tracking-[0.3em] text-brand-light">Telegram WebApp</p>
+      <h1 class="text-3xl font-semibold text-white">Monitor your planters inside Telegram</h1>
+      <p class="text-sm text-slate-300">This mini-dashboard links to your existing Plant Monitor account. First, open it via your bot, then link once using your credentials.</p>
+    </div>
+
+    <div id="status" class="rounded-2xl border border-white/10 bg-slate-900/50 px-4 py-3 text-sm text-slate-300">
+      Initializing...
+    </div>
+
+    <div id="link-form" class="hidden rounded-2xl border border-white/10 bg-slate-900/40 p-4">
+      <h2 class="text-lg font-semibold text-white">Link account</h2>
+      <p class="text-sm text-slate-400">Enter your Plant credentials once. We’ll remember your Telegram ID afterwards.</p>
+      <form class="mt-4 space-y-3" onsubmit="linkAccount(event)">
+        <label class="block text-sm">
+          <span class="text-xs uppercase tracking-widest text-slate-500">Email</span>
+          <input type="email" name="email" required class="mt-1 w-full rounded-2xl border border-white/10 bg-slate-900/70 px-4 py-2 text-white focus:border-brand focus:outline-none" />
+        </label>
+        <label class="block text-sm">
+          <span class="text-xs uppercase tracking-widest text-slate-500">Password</span>
+          <input type="password" name="password" required class="mt-1 w-full rounded-2xl border border-white/10 bg-slate-900/70 px-4 py-2 text-white focus:border-brand focus:outline-none" />
+        </label>
+        <button type="submit" class="w-full rounded-2xl bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-dark">
+          Link account
+        </button>
+      </form>
+    </div>
+
+    <div id="devices" class="hidden space-y-3">
+      <h2 class="text-lg font-semibold text-white">Devices</h2>
+      <div id="device-list" class="space-y-3"></div>
+    </div>
+  </section>
+{% endblock %}
+{% block extra_scripts %}
+<script>
+  const tg = window.Telegram?.WebApp;
+  if (tg) {
+    tg.expand();
+    tg.MainButton.hide();
+    tg.BackButton.hide();
+  }
+
+  const initData = tg?.initData ?? new URLSearchParams(window.location.search).get("init_data") ?? "";
+  const statusEl = document.getElementById("status");
+  const linkForm = document.getElementById("link-form");
+  const devicesWrap = document.getElementById("devices");
+  const deviceList = document.getElementById("device-list");
+
+  function setStatus(text, tone = "info") {
+    statusEl.textContent = text;
+    statusEl.classList.remove("text-rose-200", "text-amber-200", "text-slate-300");
+    if (tone === "error") statusEl.classList.add("text-rose-200");
+    else if (tone === "warn") statusEl.classList.add("text-amber-200");
+    else statusEl.classList.add("text-slate-300");
+  }
+
+  async function establishSession() {
+    try {
+      const resp = await fetch("/telegram/session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ init_data: initData }),
+      });
+      const data = await resp.json();
+      if (data.status === "disabled") {
+        setStatus("Telegram integration not configured. Ask admin to set the bot token.", "warn");
+        return;
+      }
+      if (data.status === "linked") {
+        linkForm.classList.add("hidden");
+        devicesWrap.classList.remove("hidden");
+        await loadDevices();
+        setStatus("Linked to your account.");
+      } else if (data.status === "unlinked") {
+        setStatus("Authenticate once to link this Telegram account.", "warn");
+        linkForm.classList.remove("hidden");
+      }
+    } catch (err) {
+      setStatus("Failed to initialize session.", "error");
+      console.error(err);
+    }
+  }
+
+  async function linkAccount(event) {
+    event.preventDefault();
+    const form = event.target;
+    const payload = {
+      init_data: initData,
+      email: form.email.value,
+      password: form.password.value,
+    };
+    setStatus("Linking...", "warn");
+    try {
+      const resp = await fetch("/telegram/link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(payload),
+      });
+      if (!resp.ok) {
+        const { detail } = await resp.json();
+        setStatus(detail || "Failed to link account.", "error");
+        return;
+      }
+      setStatus("Linked! Loading devices...");
+      linkForm.classList.add("hidden");
+      await loadDevices();
+      devicesWrap.classList.remove("hidden");
+    } catch (err) {
+      setStatus("Failed to link account.", "error");
+    }
+  }
+
+  async function loadDevices() {
+    try {
+      const resp = await fetch("/telegram/devices", { credentials: "include" });
+      if (!resp.ok) {
+        setStatus("Please link your account.", "warn");
+        return;
+      }
+      const data = await resp.json();
+      deviceList.innerHTML = "";
+      if (!data.devices || data.devices.length === 0) {
+        const empty = document.createElement("p");
+        empty.className = "text-sm text-slate-400";
+        empty.textContent = "No devices yet.";
+        deviceList.appendChild(empty);
+        return;
+      }
+      data.devices.forEach((device) => {
+        const card = document.createElement("div");
+        card.className = "rounded-2xl border border-white/10 bg-slate-900/40 p-4";
+        card.innerHTML = `
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-white font-semibold">${device.name}</p>
+              <p class="text-xs text-slate-400">${device.model || ""}</p>
+            </div>
+            <span class="text-xs px-3 py-1 rounded-full ${
+              device.connected ? "bg-emerald-500/10 text-emerald-200" : "bg-rose-500/10 text-rose-200"
+            }">${device.status}</span>
+          </div>
+          <p class="mt-3 text-xs text-slate-400">Last seen ${device.last_seen}</p>
+        `;
+        deviceList.appendChild(card);
+      });
+    } catch (err) {
+      setStatus("Failed to load devices.", "error");
+      console.error(err);
+    }
+  }
+
+  establishSession();
+</script>
+{% endblock %}

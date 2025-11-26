@@ -29,7 +29,18 @@ class AutomationEngine:
 
     def __init__(self, settings: Settings):
         self.settings = settings
-        self._redis: Redis | None = Redis.from_url(settings.redis_url, decode_responses=True)
+        self._redis: Redis | None = None
+        if settings.redis_url:
+            try:
+                self._redis = Redis.from_url(
+                    settings.redis_url,
+                    decode_responses=True,
+                    socket_connect_timeout=0.5,
+                    socket_timeout=0.5,
+                )
+            except Exception:
+                # If Redis can't be configured (e.g. during local dev), fall back to no-op mode
+                self._redis = None
 
     async def enqueue(self, device_id: str, batch_id: str, readings: Iterable[TelemetryRecord]) -> None:
         if self._redis is None:
@@ -44,7 +55,7 @@ class AutomationEngine:
             await self._redis.xadd("telemetry", payload)
         except Exception:
             # Redis is optional during local development - swallow errors but log in production
-            pass
+            self._redis = None
 
     async def close(self) -> None:
         if self._redis is not None:

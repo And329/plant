@@ -1,5 +1,6 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
+import argparse
 import asyncio
 from uuid import UUID
 
@@ -11,10 +12,6 @@ from app.db.session import AsyncSessionLocal, engine
 from app.models.entities import Actuator, AutomationProfile, Device, Sensor, User
 from app.models.enums import ActuatorType, SensorType
 
-DEMO_USER_EMAIL = "demo@plant.local"
-DEMO_USER_PASSWORD = "demo1234"
-DEMO_DEVICE_ID = UUID("11111111-1111-1111-1111-111111111111")
-DEMO_DEVICE_SECRET = "demo-device-secret"
 DEMO_ACTUATOR_IDS = {
     ActuatorType.PUMP: UUID("21111111-1111-1111-1111-111111111111"),
     ActuatorType.LAMP: UUID("31111111-1111-1111-1111-111111111111"),
@@ -26,34 +23,38 @@ DEMO_SENSOR_IDS = {
 }
 
 
-async def bootstrap_demo() -> None:
+async def bootstrap(seed_demo: bool, email: str, password: str) -> None:
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
+    if not seed_demo:
+        print("Database ready. No demo fixtures created.")
+        return
+
+    device_id = UUID("11111111-1111-1111-1111-111111111111")
+    secret = "demo-device-secret"
+
     async with AsyncSessionLocal() as session:
-        user = (
-            await session.execute(select(User).where(User.email == DEMO_USER_EMAIL))
-        ).scalar_one_or_none()
+        user = (await session.execute(select(User).where(User.email == email))).scalar_one_or_none()
         if user is None:
-            user = User(
-                email=DEMO_USER_EMAIL,
-                password_hash=get_password_hash(DEMO_USER_PASSWORD),
-                locale="en",
-            )
+            user = User(email=email, password_hash=get_password_hash(password), locale="en")
             session.add(user)
             await session.flush()
 
-        device = await session.get(Device, DEMO_DEVICE_ID)
+        device = await session.get(Device, device_id)
         if device is None:
             device = Device(
-                id=DEMO_DEVICE_ID,
+                id=device_id,
                 name="Demo planter",
                 model="Raspberry Pi",
                 user_id=user.id,
-                secret_hash=get_password_hash(DEMO_DEVICE_SECRET),
+                secret_hash=get_password_hash(secret),
             )
             session.add(device)
             await session.flush()
+        else:
+            device.user_id = user.id
+            session.add(device)
 
         for sensor_type, sensor_id in DEMO_SENSOR_IDS.items():
             sensor = await session.get(Sensor, sensor_id)
@@ -92,21 +93,26 @@ async def bootstrap_demo() -> None:
                     min_water_level=25,
                     watering_duration_sec=10,
                     watering_cooldown_min=30,
-                    lamp_schedule={"on_minutes": 30, "off_minutes": 30},
                 )
             )
 
         await session.commit()
 
-    print("Demo environment ready!")
-    print(f"User email: {DEMO_USER_EMAIL}")
-    print(f"User password: {DEMO_USER_PASSWORD}")
-    print(f"Device ID: {DEMO_DEVICE_ID}")
-    print(f"Device secret: {DEMO_DEVICE_SECRET}")
-    print("Sensor IDs:")
-    for sensor_type, sensor_id in DEMO_SENSOR_IDS.items():
-        print(f"  {sensor_type.value}: {sensor_id}")
+    print("Demo data ready!")
+    print(f"User email: {email}")
+    print(f"User password: {password}")
+    print(f"Device ID: {device_id}")
+    print(f"Device secret: {secret}")
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Initialize database and optional demo fixtures.")
+    parser.add_argument("--seed-demo", action="store_true", help="Seed demo user/device for quick testing")
+    parser.add_argument("--demo-email", default="demo@plant.local", help="Demo user email")
+    parser.add_argument("--demo-password", default="demo1234", help="Demo user password")
+    args = parser.parse_args()
+    asyncio.run(bootstrap(args.seed_demo, args.demo_email, args.demo_password))
 
 
 if __name__ == "__main__":
-    asyncio.run(bootstrap_demo())
+    main()

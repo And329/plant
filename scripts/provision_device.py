@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import json
 import secrets
 from uuid import UUID, uuid4
 
@@ -10,6 +11,7 @@ from sqlalchemy import select
 from app.core.security import get_password_hash
 from app.db.session import AsyncSessionLocal
 from app.models.entities import Device, User
+from app.services.provisioning import ensure_default_components
 
 
 async def _provision(name: str, model: str | None, owner_email: str | None) -> None:
@@ -32,6 +34,7 @@ async def _provision(name: str, model: str | None, owner_email: str | None) -> N
             secret_hash=get_password_hash(secret),
         )
         session.add(device)
+        sensors, actuators = await ensure_default_components(session, device)
         await session.commit()
         print("Device provisioned!")
         print(f"  Name: {device.name}")
@@ -41,6 +44,18 @@ async def _provision(name: str, model: str | None, owner_email: str | None) -> N
             print(f"  Assigned to: {owner_email}")
         else:
             print("  Assigned to: <unclaimed>")
+        sensor_key_overrides = {"air_temperature": "temperature"}
+        config = {
+            "api_base_url": "http://localhost:8000",
+            "device_id": str(device_id),
+            "device_secret": secret,
+            "sensor_ids": {
+                sensor_key_overrides.get(sensor.type.value, sensor.type.value): str(sensor.id) for sensor in sensors
+            },
+            "actuator_ids": {actuator.type.value: str(actuator.id) for actuator in actuators},
+        }
+        print("  Config snippet (update api_base_url and sensor IDs as needed):")
+        print(json.dumps(config, indent=2))
 
 
 def main() -> None:

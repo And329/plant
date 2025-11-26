@@ -1,0 +1,14 @@
+{
+  "api_base_url": "http://127.0.0.1:8000",
+  "device_id": "9c87ab1f-e4bb-4baf-9e3d-e767dab2b794",
+  "device_secret": "DnVauv0zI7mBi1vIV7k5XeZsRxTfKW_M",
+  "sensor_ids": {
+    "soil_moisture": "0f9ae0ca-071b-403f-b600-8382c11e0674",
+    "air_temperature": "bd0cbb8a-9d22-4396-ba7c-9e6bd6a52e2f",
+    "water_level": "83a28e39-7fe9-4fbc-a03d-b08b17600340"
+  },
+  "actuator_ids": {
+    "pump": "2f07f9bd-638e-49ac-8f3b-6cb48900e92b",
+    "lamp": "b7623f00-7747-4072-bf01-7e332f2db4c8"
+  }
+}

@@ -4,3 +4,4 @@ plant_backend.egg-info
 plant.db
 build
 data/
+__pycache__/

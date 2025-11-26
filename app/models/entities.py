@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import List, Optional
 from uuid import UUID, uuid4
 
-from sqlalchemy import DateTime, Enum, Float, ForeignKey, JSON, Text
+from sqlalchemy import DateTime, Enum, Float, ForeignKey, JSON, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
@@ -38,6 +38,7 @@ class User(TimestampMixin, Base):
     password_hash: Mapped[str]
     locale: Mapped[str | None]
     alert_preferences: Mapped[dict | None] = mapped_column(JSON)
+    telegram_id: Mapped[str | None] = mapped_column(String(64), unique=True, nullable=True)
 
     devices: Mapped[List["Device"]] = relationship(back_populates="owner")
 
@@ -117,6 +118,13 @@ class AutomationProfile(TimestampMixin, Base):
     lamp_schedule: Mapped[dict | None] = mapped_column(JSON)
 
     device: Mapped[Device] = relationship(back_populates="automation_profile")
+
+
+class AppSetting(TimestampMixin, Base):
+    __tablename__ = "app_settings"
+
+    key: Mapped[str] = mapped_column(String(100), primary_key=True)
+    value: Mapped[str] = mapped_column(Text, nullable=False)
 
 
 class Command(TimestampMixin, Base):

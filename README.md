@@ -39,11 +39,12 @@ app/
    ```bash
    mkdir -p data
    ```
-4. **Bootstrap demo data** (creates tables, a user, device, sensors, and automation profile):
+   Set `PLANT_ADMIN_EMAILS` to a comma-separated list (e.g. `admin@example.com,ops@example.com`) so those accounts can access the admin console.
+4. **Initialize the database**:
    ```bash
    python -m scripts.bootstrap_demo
    ```
-   The script prints the user credentials, device ID/secret, and sensor IDs used by the client stub.
+   Pass `--seed-demo` if you still want the sample user/device (`python -m scripts.bootstrap_demo --seed-demo`). Otherwise, the database is created with no demo data and you can register through `/web/register`.
 5. **Start the API**:
    ```bash
    uvicorn app.main:app --reload
@@ -63,6 +64,7 @@ app/
 - Navigating to `/web` shows a password-protected UI where you can register, sign in, list devices, view latest sensor readings, and edit automation thresholds.
 - Use the **Add device** form to provision additional devices directly from the UI; the new device ID + secret are displayed once and can be typed into the Pi client.
 - Use the **Claim device** form to link factory-provisioned hardware by entering its device ID + secret.
+- Administrators (emails listed in `PLANT_ADMIN_EMAILS`) get an **Admin** link that opens `/web/admin`, where they can mint unclaimed devices for manufacturing and see a history of hardware awaiting assignment.
 - Device detail pages show each sensor with its most recent reading plus a form to adjust the soil moisture, temperature, and watering parameters stored in the automation profile.
 
 ### Provisioning physical devices
@@ -71,7 +73,7 @@ app/
   ```bash
   python -m scripts.provision_device --name "Planter 101" --model "Model A"
   ```
-  The script prints the UUID + secret you should bundle with the device. Include `--owner-email you@example.com` if you want to assign it immediately; otherwise it remains unclaimed until a customer uses the claim form in the dashboard.
+  The script prints the UUID + secret you should bundle with the device (along with a JSON config snippet containing sensor/actuator IDs). Include `--owner-email you@example.com` if you want to assign it immediately; otherwise it remains unclaimed until a customer uses the claim form in the dashboard. You can perform the same action through `/web/admin` if your account is listed in `PLANT_ADMIN_EMAILS`; the admin console auto-creates the default sensors and actuators for each unit.
 
 - After assembly, flash the `device_id` + `device_secret` into the Pi client (or drop them into `/etc/plant-device.json`) and the device can authenticate via `/auth/device`.
 
@@ -79,7 +81,15 @@ app/
 
 ### Raspberry Pi Client Stub
 
-- `clients/pi_client.py` contains a synchronous script that authenticates a device, pushes telemetry, polls `/commands`, and acknowledges executions. It deliberately leaves `get_soil_moisture`, `get_temperature`, `get_water_level`, and `_execute_command` as placeholders for your actual GPIO/ADC integrations.
+- `clients/pi_client.py` contains a synchronous script that authenticates a device, pushes telemetry, polls `/commands`, and acknowledges executions. It deliberately leaves `get_soil_moisture`, `get_temperature`, and `get_water_level` as placeholders for your hardware integrations, but everything else (config loading, token refresh, CLI, logging) mirrors production behavior.
+- Provide credentials via `device_config.json` or environment variables. Example config:
+  ```json
+  {
+    "api_base_url": "https://api.example.com",
+    "device_id": "uuid-here",
+    "device_secret": "secret-here"
+  }
+  ```
 - Update `API_BASE_URL`, `DEVICE_ID`, `DEVICE_SECRET`, and the hard-coded `sensor_id` UUIDs to match the device + sensor rows you provisioned via the API (the defaults already align with the bootstrap script output).
 - Install client deps on the Pi (typically `pip install requests`, or `pip install -e .[pi]` locally) and run `python clients/pi_client.py`. Environment variables (`PLANT_API_BASE_URL`, `PLANT_DEVICE_ID`, etc.) override the defaults printed by the bootstrap script. The loop sends telemetry every `POLL_INTERVAL_SECONDS` and logs commands from the backend.
 
@@ -109,11 +119,11 @@ Extend `AutomationWorker` and `NotificationService` to match production needs (a
    ```bash
    docker compose up --build -d
    ```
-3. Run the bootstrap script once to seed demo data inside the container (re-run whenever you wipe the mounted SQLite volume):
+3. Run the bootstrap script once to create tables inside the container (re-run whenever you wipe the mounted SQLite volume):
    ```bash
    docker compose run --rm api python -m scripts.bootstrap_demo
    ```
-   The shared `plant-db` volume stores `data/plant.db`, so data persists across restarts.
+   Append `--seed-demo` if you want the sample user/device for smoke testing. The shared `plant-db` volume stores `data/plant.db`, so data persists across restarts.
 4. Visit `http://localhost:8000/web` and log in with the demo credentials printed by the bootstrap script.
 
 The compose file also starts the automation worker service, so watering/light rules run automatically. Adjust `docker-compose.yml` if you prefer an external PostgreSQL instance or managed Redis.
