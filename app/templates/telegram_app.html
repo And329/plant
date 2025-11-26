@@ -67,6 +67,15 @@
         credentials: "include",
         body: JSON.stringify({ init_data: initData }),
       });
+      if (!resp.ok) {
+        let detail = "Failed to initialize session.";
+        try {
+          const body = await resp.json();
+          if (body.detail) detail = body.detail;
+        } catch (_) {}
+        setStatus(detail, "error");
+        return;
+      }
       const data = await resp.json();
       if (data.status === "disabled") {
         setStatus("Telegram integration not configured. Ask admin to set the bot token.", "warn");
