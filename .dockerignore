@@ -1,6 +1,10 @@
 .venv
-.env
+.git
+__pycache__
+*.pyc
 plant_backend.egg-info
 plant.db
 build
-data/
+*.log
+.env
+.DS_Store

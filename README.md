@@ -35,7 +35,10 @@ app/
    ```bash
    cp .env.example .env
    ```
-   Defaults use SQLite (`plant.db`) and Redis on `localhost`.
+   Defaults use SQLite (`data/plant.db`) and Redis on `localhost`. Create the data directory once if you're running locally:
+   ```bash
+   mkdir -p data
+   ```
 4. **Bootstrap demo data** (creates tables, a user, device, sensors, and automation profile):
    ```bash
    python -m scripts.bootstrap_demo
@@ -85,3 +88,28 @@ app/
 - Alerts notify the placeholder `NotificationService` for future integrations.
 
 Extend `AutomationWorker` and `NotificationService` to match production needs (advanced schedules, ML-driven watering, actual push/email integrations, etc.).
+
+## Docker deployment
+
+1. Copy `.env.example` to `.env` and adjust secrets, or rely on the defaults for SQLite + Redis.
+2. Build the image and start the stack (API + worker + Redis):
+   ```bash
+   docker compose up --build -d
+   ```
+3. Run the bootstrap script once to seed demo data inside the container (re-run whenever you wipe the mounted SQLite volume):
+   ```bash
+   docker compose run --rm api python -m scripts.bootstrap_demo
+   ```
+   The shared `plant-db` volume stores `data/plant.db`, so data persists across restarts.
+4. Visit `http://localhost:8000/web` and log in with the demo credentials printed by the bootstrap script.
+
+The compose file also starts the automation worker service, so watering/light rules run automatically. Adjust `docker-compose.yml` if you prefer an external PostgreSQL instance or managed Redis.
+
+### One-command bootstrap
+
+Run `scripts/deploy.sh` on a new machine to generate `.env` with random secrets, build the Docker images, start the stack, and seed the demo data automatically:
+
+```bash
+chmod +x scripts/deploy.sh
+./scripts/deploy.sh
+```

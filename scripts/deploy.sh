@@ -6,6 +6,14 @@ cd "$ROOT_DIR"
 
 ENV_FILE="$ROOT_DIR/.env"
 
+ensure_python() {
+  if ! command -v python3 >/dev/null 2>&1; then
+    echo "python3 not found. Installing via apt..."
+    sudo apt-get update
+    sudo apt-get install -y python3
+  fi
+}
+
 generate_secret() {
 python3 - <<'PY'
 import secrets
@@ -15,6 +23,7 @@ PY
 
 if [[ ! -f "$ENV_FILE" ]]; then
   echo "Creating .env with random secrets..."
+  ensure_python
   JWT_SECRET=$(generate_secret)
   SESSION_SECRET=$(generate_secret)
   cat > "$ENV_FILE" <<EOF
