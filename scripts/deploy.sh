@@ -90,9 +90,9 @@ fi
 sudo systemctl restart docker >/dev/null 2>&1 || true
 
 echo "Building and starting containers..."
-docker compose up --build -d
+DOCKER_BUILDKIT=0 COMPOSE_DOCKER_CLI_BUILD=0 docker compose up --build -d
 
 echo "Bootstrapping demo data (safe to rerun)..."
-docker compose run --rm api python -m scripts.bootstrap_demo
+DOCKER_BUILDKIT=0 COMPOSE_DOCKER_CLI_BUILD=0 docker compose run --rm api python -m scripts.bootstrap_demo
 
 echo "All set! API available at http://localhost:8000/web"
