@@ -1,14 +1,8 @@
-upstream plant_api {
-    server api:8000;
-}
+set $plant_api_upstream "${PLANT_API_ORIGIN}";
+set $plant_web_upstream "${PLANT_WEB_ORIGIN}";
+set $plant_telegram_upstream "${PLANT_TELEGRAM_ORIGIN}";
 
-upstream plant_web {
-    server web_ui:8100;
-}
-
-upstream plant_telegram {
-    server telegram_web_app:8200;
-}
+resolver ${PLANT_RESOLVER} valid=30s ipv6=off;
 
 server {
     listen 80;
@@ -18,8 +12,9 @@ server {
 }
 
 server {
-    listen 443 ssl http2;
-    listen [::]:443 ssl http2;
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    http2 on;
     server_name _;
 
     ssl_certificate /etc/nginx/certs/fullchain.pem;
@@ -31,7 +26,7 @@ server {
     error_log /var/log/nginx/plant_error.log;
 
     location ~ ^/(auth|telemetry|commands|devices|alerts|users)(/|$) {
-        proxy_pass http://plant_api;
+        proxy_pass http://$plant_api_upstream;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -43,7 +38,7 @@ server {
     }
 
     location /docs {
-        proxy_pass http://plant_api;
+        proxy_pass http://$plant_api_upstream;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -55,7 +50,7 @@ server {
     }
 
     location /redoc {
-        proxy_pass http://plant_api;
+        proxy_pass http://$plant_api_upstream;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -67,7 +62,7 @@ server {
     }
 
     location = /openapi.json {
-        proxy_pass http://plant_api;
+        proxy_pass http://$plant_api_upstream;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -79,7 +74,7 @@ server {
     }
 
     location ^~ /telegram {
-        proxy_pass http://plant_telegram;
+        proxy_pass http://$plant_telegram_upstream;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -91,7 +86,7 @@ server {
     }
 
     location / {
-        proxy_pass http://plant_web;
+        proxy_pass http://$plant_web_upstream;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
