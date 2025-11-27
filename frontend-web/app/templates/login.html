@@ -1,0 +1,29 @@
+﻿{% extends "base.html" %}
+{% block title %}Sign in - Plant Monitor{% endblock %}
+{% block content %}
+  <section class="mx-auto max-w-md rounded-3xl border border-white/10 bg-white/5 p-8 shadow-2xl shadow-black/40 backdrop-blur">
+    <h1 class="text-3xl font-semibold text-white">Welcome back</h1>
+    <p class="mt-2 text-sm text-slate-300">Log in to manage your planters.</p>
+    {% if error %}
+    <div class="mt-4 rounded-2xl border border-rose-400/40 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">{{ error }}</div>
+    {% endif %}
+    <form method="post" class="mt-6 space-y-4">
+      <label class="block space-y-2 text-sm">
+        <span class="text-xs uppercase tracking-widest text-slate-400">Email</span>
+        <input type="email" name="email" required class="w-full rounded-2xl border border-white/10 bg-slate-900/50 px-4 py-3 text-white placeholder-slate-500 focus:border-brand focus:outline-none" />
+      </label>
+      <label class="block space-y-2 text-sm">
+        <span class="text-xs uppercase tracking-widest text-slate-400">Password</span>
+        <input type="password" name="password" required class="w-full rounded-2xl border border-white/10 bg-slate-900/50 px-4 py-3 text-white placeholder-slate-500 focus:border-brand focus:outline-none" />
+      </label>
+      <button type="submit" class="w-full rounded-2xl bg-brand px-5 py-3 text-sm font-semibold text-white transition hover:bg-brand-dark">Sign in</button>
+    </form>
+    <p class="mt-4 text-center text-sm text-slate-400">
+      Need an account?
+      <a href="/web/register" class="text-brand-light underline-offset-4 hover:underline">Create one</a>
+    </p>
+    <p class="mt-6 rounded-2xl border border-white/10 bg-slate-900/40 px-4 py-3 text-xs text-slate-400">
+      Demo credentials: <code class="text-slate-100">demo@plant.local / demo1234</code>
+    </p>
+  </section>
+{% endblock %}

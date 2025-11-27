@@ -1,0 +1,19 @@
+services:
+  web:
+    build:
+      context: ..  # Build from parent directory to access backend code
+      dockerfile: frontend-web/Dockerfile
+    command: uvicorn main:app --host 0.0.0.0 --port 8100
+    env_file:
+      - .env
+    ports:
+      - "8100:8100"
+    environment:
+      - BACKEND_API_URL=${BACKEND_API_URL:-http://api:8000}
+    volumes:
+      # Mount backend code (temporary until refactored to use HTTP API)
+      - ../backend/app:/app/app:ro
+      - ../backend/data:/app/data
+
+# Note: This frontend still imports backend code directly
+# See README.md for refactoring plan to make it truly standalone

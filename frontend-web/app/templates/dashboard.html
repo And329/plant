@@ -1,0 +1,131 @@
+﻿{% extends "base.html" %}
+{% block title %}Dashboard - Plant Monitor{% endblock %}
+{% block content %}
+  <section class="space-y-8">
+    <div class="flex flex-col gap-3">
+      <p class="text-sm uppercase tracking-[0.3em] text-brand-light">Your devices</p>
+      <h1 class="text-3xl font-semibold text-white sm:text-4xl">Monitor, automate, and orchestrate your planters.</h1>
+      <p class="text-slate-300">Use the controls below to add test rigs, claim freshly assembled hardware, or drill into live telemetry.</p>
+    </div>
+
+    {% if dashboard_notice %}
+    <div class="rounded-2xl border px-6 py-4 text-sm {% if dashboard_notice.status == 'error' %}border-rose-400/40 bg-rose-500/10 text-rose-100{% else %}border-brand/40 bg-brand/10 text-brand-light{% endif %}">
+      {{ dashboard_notice.text }}
+    </div>
+    {% endif %}
+    {% if claim_message %}
+    <div class="rounded-2xl border px-6 py-4 text-sm {{ 'border-rose-400/40 bg-rose-500/10 text-rose-100' if claim_message.status == 'error' else 'border-amber-300/40 bg-amber-500/10 text-amber-100' }}">
+      {{ claim_message.text }}
+    </div>
+    {% endif %}
+
+    <div class="grid gap-8 lg:grid-cols-3">
+      <div class="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-2xl shadow-black/20 backdrop-blur lg:col-span-2">
+        <div class="flex items-center justify-between">
+          <h2 class="text-xl font-semibold text-white">Fleet overview</h2>
+          <span class="text-sm text-slate-400">{{ devices|length }} devices</span>
+        </div>
+        <div class="mt-4 overflow-hidden rounded-2xl border border-white/5">
+          {% if devices %}
+          <table class="min-w-full divide-y divide-white/5 text-sm">
+            <thead class="bg-white/5 text-left text-xs font-semibold uppercase tracking-widest text-slate-400">
+              <tr>
+                <th class="px-4 py-3">Name</th>
+                <th class="px-4 py-3">Status</th>
+                <th class="px-4 py-3">Last seen</th>
+                <th class="px-4 py-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-white/5 text-slate-200">
+              {% for item in devices %}
+              <tr data-device-row="{{ item.device.id }}">
+                <td class="px-4 py-4">
+                  <div class="font-medium text-white">{{ item.device.name }}</div>
+                  <div class="text-xs text-slate-400">{{ item.device.model or "Model TBD" }}</div>
+                </td>
+                <td class="px-4 py-4">
+                  <span
+                    data-status-badge="{{ item.device.id }}"
+                    class="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold {% if item.connected %}border border-emerald-300/40 bg-emerald-500/10 text-emerald-100{% else %}border border-rose-300/40 bg-rose-500/10 text-rose-100{% endif %}"
+                  >
+                    <span class="h-2 w-2 rounded-full {% if item.connected %}bg-emerald-300{% else %}bg-rose-300{% endif %}"></span>
+                    {{ item.status }}
+                  </span>
+                </td>
+                <td class="px-4 py-4">
+                  <span class="text-sm text-slate-300" data-last-seen="{{ item.device.id }}" data-last-seen-iso="{{ item.last_seen_iso or '' }}">{{ item.last_seen }}</span>
+                </td>
+                <td class="px-4 py-4 text-right">
+                  <div class="flex justify-end gap-2">
+                    <a href="/web/devices/{{ item.device.id }}" class="rounded-full border border-white/20 px-4 py-1 text-xs font-semibold text-white transition hover:border-white hover:bg-white/10">Open</a>
+                    <form method="post" action="/web/devices/{{ item.device.id }}/delete" onsubmit="return confirm('Remove {{ item.device.name }}?');">
+                      <button type="submit" class="rounded-full border border-rose-500/40 px-4 py-1 text-xs font-semibold text-rose-200 transition hover:bg-rose-500/10">Remove</button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+          <div class="px-4 py-10 text-center text-slate-400">No devices yet – add one using the forms on the right.</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="space-y-6">
+        <div class="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-lg shadow-black/20">
+          <h3 class="text-lg font-semibold text-white">Claim assembled device</h3>
+          <p class="text-sm text-slate-300">Link field hardware using the UUID + secret shipped with it.</p>
+          <form method="post" action="/web/devices/claim" class="mt-4 space-y-4">
+            <div>
+              <label class="text-xs uppercase tracking-widest text-slate-400">Device ID</label>
+              <input type="text" name="device_id" required placeholder="UUID" class="mt-1 w-full rounded-2xl border border-white/10 bg-slate-900/60 px-4 py-2 text-sm text-white placeholder-slate-500 focus:border-brand focus:outline-none" />
+            </div>
+            <div>
+              <label class="text-xs uppercase tracking-widest text-slate-400">Device secret</label>
+              <input type="password" name="device_secret" required class="mt-1 w-full rounded-2xl border border-white/10 bg-slate-900/60 px-4 py-2 text-sm text-white placeholder-slate-500 focus:border-brand focus:outline-none" />
+            </div>
+            <button type="submit" class="w-full rounded-2xl bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/20">Claim device</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </section>
+{% endblock %}
+{% block extra_scripts %}
+<script>
+  const pollInterval = {{ device_status_poll_interval|default(10) }} * 1000;
+  const badgeBase = "inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold";
+  const connectedClasses = " border border-emerald-300/40 bg-emerald-500/10 text-emerald-100";
+  const disconnectedClasses = " border border-rose-300/40 bg-rose-500/10 text-rose-100";
+  async function refreshDeviceStatuses() {
+    try {
+      const response = await fetch("/web/devices/statuses", {
+        headers: { "Accept": "application/json" },
+        credentials: "same-origin",
+      });
+      if (!response.ok) return;
+      const data = await response.json();
+      Object.entries(data).forEach(([id, meta]) => {
+        const badge = document.querySelector(`[data-status-badge="${id}"]`);
+        if (badge) {
+          badge.innerHTML = `<span class="h-2 w-2 rounded-full ${meta.connected ? "bg-emerald-300" : "bg-rose-300"}"></span>${meta.status}`;
+          badge.className = badgeBase + (meta.connected ? connectedClasses : disconnectedClasses);
+        }
+        const last = document.querySelector(`[data-last-seen="${id}"]`);
+        if (last) {
+          last.textContent = meta.last_seen;
+          last.dataset.lastSeenIso = meta.last_seen_iso || "";
+        }
+      });
+    } catch (err) {
+      console.warn("Failed to refresh device statuses", err);
+    }
+  }
+  if (pollInterval > 0) {
+    setInterval(refreshDeviceStatuses, pollInterval);
+    refreshDeviceStatuses();
+  }
+</script>
+{% endblock %}

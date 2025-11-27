@@ -1,0 +1,39 @@
+services:
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    # Port not exposed to host - only accessible within Docker network
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: uvicorn main:app --host 0.0.0.0 --port 8000
+    environment:
+      PLANT_REDIS_URL: redis://redis:6379/0
+    env_file:
+      - .env
+    depends_on:
+      - redis
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: python -m app.workers.automation_worker
+    environment:
+      PLANT_REDIS_URL: redis://redis:6379/0
+    env_file:
+      - .env
+    depends_on:
+      - redis
+      - api
+    volumes:
+      - ./data:/app/data
+
+volumes:
+  plant-db:

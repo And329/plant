@@ -1,147 +1,289 @@
-﻿# Plant Automation Backend
+# Plant Automation System
 
-FastAPI + SQLAlchemy service that ingests telemetry from Raspberry Pi powered plant-care devices, automates pump/lamp control, and surfaces alerts to end users.
+Microservices-based platform for managing Raspberry Pi-powered plant care devices. Includes REST API backend, web dashboard, Telegram bot integration, and support for mobile applications.
+
+## Architecture
+
+This project follows a **service-oriented architecture** where each component can be deployed independently:
+
+- **Backend API** - Standalone REST API service
+- **Frontend Web** - Web dashboard (can run separately)
+- **Frontend Telegram** - Telegram Mini App (can run separately)
+- **Nginx** - Reverse proxy (optional, can use any proxy)
+- **Mobile App** - (Future) Will consume the same REST API
+
+### Service Separation Benefits
+
+- Deploy/scale services independently
+- Remove services you don't need (e.g., remove Telegram if unused)
+- Add new clients (mobile app) without changing backend
+- Replace infrastructure (nginx) without touching services
+- Better suited for cloud deployment (K8s, ECS, etc.)
+
+## Project Structure
+
+```
+backend/              # Backend REST API (standalone)
+├── app/             # API logic, models, schemas
+├── data/            # SQLite database (runtime)
+├── clients/         # Raspberry Pi client
+├── scripts/         # DB bootstrap scripts
+├── docker-compose.yml  # Run backend standalone
+├── API.md           # API documentation for mobile dev
+└── README.md
+
+frontend-web/        # Web UI (standalone)
+├── app/
+├── docker-compose.yml  # Run web UI standalone
+└── README.md
+
+frontend-telegram/   # Telegram Mini App (standalone)
+├── app/
+├── docker-compose.yml
+└── README.md
+
+nginx/              # Reverse proxy (standalone)
+├── default.conf
+├── docker-compose.yml
+└── README.md
+
+docker-compose.yml  # Full stack for local development
+```
+
+## Quick Start (Full Stack)
+
+Run all services together for local development:
+
+```bash
+# 1. Copy environment file
+cp .env.example .env
+
+# 2. Generate SSL certificates (for local HTTPS)
+mkdir -p nginx/certs
+openssl req -x509 -newkey rsa:4096 -keyout nginx/certs/privkey.pem \
+    -out nginx/certs/fullchain.pem -days 365 -nodes -subj "/CN=localhost"
+
+# 3. Start all services
+docker compose up --build
+
+# 4. Bootstrap database (first time only)
+docker compose exec api python -m scripts.bootstrap_db --seed-demo
+
+# 5. Access the application
+# - Web UI: https://localhost/web
+# - API Docs: https://localhost/docs
+# - Telegram: https://localhost/telegram
+```
+
+## Running Services Independently
+
+### Backend Only
+
+```bash
+cd backend
+cp .env.example .env
+docker compose up --build
+
+# API available at http://localhost:8000
+# Docs at http://localhost:8000/docs
+```
+
+**Use case**: Mobile app development, API testing
+
+### Web UI Only
+
+```bash
+cd frontend-web
+cp .env.example .env
+# Set BACKEND_API_URL=http://your-backend-url
+docker compose up --build
+
+# Web UI available at http://localhost:8100
+```
+
+**Use case**: Frontend development, separate web deployment
+
+### Telegram Only
+
+```bash
+cd frontend-telegram
+cp .env.example .env
+# Set BACKEND_API_URL=http://your-backend-url
+docker compose up --build
+
+# Telegram app available at http://localhost:8200
+```
+
+**Use case**: Telegram bot development, separate deployment
+
+### Nginx Only
+
+```bash
+cd nginx
+docker compose up
+
+# Proxy available at http://localhost:80
+```
+
+**Use case**: Using existing nginx, testing proxy config
+
+## Mobile App Development
+
+The backend exposes a complete REST API that mobile apps can consume. See [backend/API.md](backend/API.md) for full API documentation.
+
+**Key endpoints:**
+- `POST /auth/device` - Device authentication
+- `GET /devices` - List user's devices
+- `GET /telemetry/latest/{device_id}` - Latest sensor readings
+- `POST /commands/{device_id}/manual` - Control devices
+- `GET /alerts` - Get alerts/notifications
+
+**Mobile app flow:**
+1. User authentication (implement OAuth or session)
+2. Fetch devices: `GET /devices`
+3. Display telemetry: `GET /telemetry/latest/{id}`
+4. Send commands: `POST /commands/{id}/manual`
+5. Show alerts: `GET /alerts?unresolved_only=true`
 
 ## Features
 
-- Device provisioning with secret hashing and short-lived JWTs (`/auth/device`, `/auth/device/refresh`).
-- Telemetry ingestion endpoint that validates sensor ownership, persists readings, and enqueues batches to the automation worker.
-- Command queue for pumps/lamps with device polling + acknowledgements.
-- User-facing device management (provisioning secrets, automation profile CRUD) and alert APIs.
-- Redis-backed automation worker stub that consumes telemetry batches and issues commands/alerts per heuristic thresholds.
-
-## Project Layout
-
-```
-app/
-  core/          # configuration + security helpers
-  db/            # SQLAlchemy base + AsyncSession factory
-  models/        # ORM entities and enums
-  schemas/       # Pydantic DTOs
-  routers/       # FastAPI routers (auth, telemetry, devices, commands, alerts)
-  services/      # automation queue + notification stubs
-  workers/       # automation_worker consuming Redis stream
-  main.py        # FastAPI app factory
-```
-
-## Getting Started
-
-1. (Optional) Create and activate a virtualenv.
-2. **Install dependencies** (includes the Pi client extra):
-   ```bash
-   pip install -e .[pi]
-   ```
-3. **Configure environment** by copying the sample file:
-   ```bash
-   cp .env.example .env
-   ```
-   Defaults use SQLite (`data/plant.db`) and Redis on `localhost`. Create the data directory once if you're running locally:
-   ```bash
-   mkdir -p data
-   ```
-   Set `PLANT_ADMIN_EMAILS` to a comma-separated list (e.g. `admin@example.com,ops@example.com`) so those accounts can access the admin console.
-4. **Initialize the database**:
-   ```bash
-   python -m scripts.bootstrap_db
-   ```
-   Pass `--seed-demo` if you still want the sample user/device (`python -m scripts.bootstrap_db --seed-demo`). Otherwise, the database is created with no demo data and you can register through `/web/register`.
-5. **Start the API**:
-   ```bash
-   uvicorn app.main:app --reload
-   ```
-6. **Run the automation worker** in another terminal if you want automatic watering decisions:
-   ```bash
-   python -m app.workers.automation_worker
-   ```
-7. **Launch the Pi client stub** (new terminal):
-   ```bash
-   python clients/pi_client.py
-   ```
-8. **Open the web dashboard** at [http://127.0.0.1:8000/web](http://127.0.0.1:8000/web) and sign in with the demo credentials printed during bootstrapping.
+### Backend API
+- JWT-based device authentication
+- Telemetry ingestion from IoT devices
+- Command queue for actuators (pumps, lamps)
+- Automation rules engine
+- User management and alerts
+- Redis-backed background worker
 
 ### Web Dashboard
+- User registration and authentication
+- Device management and provisioning
+- Live sensor readings dashboard
+- Automation profile configuration
+- Alert management
+- Admin panel
 
-- Navigating to `/web` shows a password-protected UI where you can register, sign in, list devices, view latest sensor readings, and edit automation thresholds.
-- Use the **Add device** form to provision additional devices directly from the UI; the new device ID + secret are displayed once and can be typed into the Pi client.
-- Use the **Claim device** form to link factory-provisioned hardware by entering its device ID + secret.
-- Administrators (emails listed in `PLANT_ADMIN_EMAILS`) get an **Admin** link that opens `/web/admin`, where they can mint unclaimed devices for manufacturing and see a history of hardware awaiting assignment.
-- Device detail pages show each sensor with its most recent reading plus a form to adjust the soil moisture, temperature, and watering parameters stored in the automation profile.
+### Telegram Integration
+- Telegram Mini App support
+- Device monitoring via Telegram
+- Telegram bot notifications (future)
 
-### Provisioning physical devices
+### Raspberry Pi Client
+- Stub client for development
+- Device authentication
+- Telemetry submission
+- Command polling and execution
 
-- Manufacturing or ops can pre-create devices with unique credentials via:
-  ```bash
-  python -m scripts.provision_device --name "Planter 101" --model "Model A"
-  ```
-  The script prints the UUID + secret you should bundle with the device (along with a JSON config snippet containing sensor/actuator IDs). Include `--owner-email you@example.com` if you want to assign it immediately; otherwise it remains unclaimed until a customer uses the claim form in the dashboard. You can perform the same action through `/web/admin` if your account is listed in `PLANT_ADMIN_EMAILS`; the admin console auto-creates the default sensors and actuators for each unit.
+## Development
 
-- After assembly, flash the `device_id` + `device_secret` into the Pi client (or drop them into `/etc/plant-device.json`) and the device can authenticate via `/auth/device`.
-
-- Customers sign up at `/web/register`, log in, and claim the unit using the printed credentials. The claim endpoint verifies the secret and assigns the device to their account without touching the factory bootstrap data.
-
-### Raspberry Pi Client Stub
-
-- `clients/pi_client.py` contains a synchronous script that authenticates a device, pushes telemetry, polls `/commands`, and acknowledges executions. It deliberately leaves `get_soil_moisture`, `get_temperature`, and `get_water_level` as placeholders for your hardware integrations, but everything else (config loading, token refresh, CLI, logging) mirrors production behavior.
-- Provide credentials via `device_config.json` or environment variables. Example config:
-  ```json
-  {
-    "api_base_url": "https://api.example.com",
-    "device_id": "uuid-here",
-    "device_secret": "secret-here"
-  }
-  ```
-- Update `API_BASE_URL`, `DEVICE_ID`, `DEVICE_SECRET`, and the hard-coded `sensor_id` UUIDs to match the device + sensor rows you provisioned via the API (the defaults already align with the bootstrap script output).
-- Install client deps on the Pi (typically `pip install requests`, or `pip install -e .[pi]` locally) and run `python clients/pi_client.py`. Environment variables (`PLANT_API_BASE_URL`, `PLANT_DEVICE_ID`, etc.) override the defaults printed by the bootstrap script. The loop sends telemetry every `POLL_INTERVAL_SECONDS` and logs commands from the backend.
-
-## API Highlights
-
-- `POST /auth/device` – exchange device ID + secret for access/refresh tokens.
-- `POST /telemetry` – devices push batches of sensor readings.
-- `GET /commands` / `POST /commands/ack` – poll + acknowledge actuator instructions.
-- `GET/POST /devices` – list + provision new devices (returns fresh secret).
-- `GET/PUT /devices/{id}/automation` – configure automation thresholds & schedules.
-- `GET /alerts` + `PATCH /alerts/{id}/resolve` – user alert center.
-
-## Automation Worker
-
-`app/workers/automation_worker.py` consumes telemetry events from Redis (`telemetry` stream) and executes basic rules:
-- Below-minimum soil moisture triggers pump pulses with cooldown enforcement.
-- Out-of-range air temperature raises warnings.
-- Low reservoir level creates critical alerts.
-- Alerts notify the placeholder `NotificationService` for future integrations.
-
-Extend `AutomationWorker` and `NotificationService` to match production needs (advanced schedules, ML-driven watering, actual push/email integrations, etc.).
-
-## Docker deployment
-
-1. Copy `.env.example` to `.env` and adjust secrets, or rely on the defaults for SQLite + Redis.
-2. Build the image and start the stack (API + worker + Redis):
-   ```bash
-   docker compose up --build -d
-   ```
-3. Run the bootstrap script once to create tables inside the container (re-run whenever you wipe the mounted SQLite volume):
-   ```bash
-   docker compose run --rm api python -m scripts.bootstrap_db
-   ```
-   Append `--seed-demo` if you want the sample user/device for smoke testing. The shared `plant-db` volume stores `data/plant.db`, so data persists across restarts.
-4. Place TLS certificates for the built-in Nginx reverse proxy:
-   - Copy your production `fullchain.pem` and `privkey.pem` into `infra/nginx/certs/`.
-   - For local testing, create a self-signed pair:
-     ```bash
-     mkdir -p infra/nginx/certs
-     openssl req -x509 -newkey rsa:4096 -keyout infra/nginx/certs/privkey.pem \
-         -out infra/nginx/certs/fullchain.pem -days 365 -nodes -subj "/CN=localhost"
-     ```
-   - Nginx listens on ports 80/443 and proxies to the FastAPI container, so browse via `https://localhost/web` (HTTP is redirected to HTTPS). Update `infra/nginx/default.conf` if you want to lock the `server_name`.
-5. Visit `https://localhost/web` and log in with the demo credentials printed by the bootstrap script.
-
-The compose file also starts the automation worker and an Nginx TLS proxy, so watering/light rules run automatically and traffic terminates at HTTPS. Adjust `docker-compose.yml` if you prefer a different proxy (or direct exposure), external PostgreSQL, or managed Redis.
-
-### One-command bootstrap
-
-Run `scripts/deploy.sh` on a new machine to generate `.env` with random secrets, build the Docker images, start the stack, and seed the demo data automatically. The script now performs `docker compose down -v` before rebuilding so the SQLite schema stays in sync with code changes:
+### Backend Development
 
 ```bash
-chmod +x scripts/deploy.sh
-./scripts/deploy.sh
+cd backend
+python -m venv .venv
+source .venv/bin/activate  # or .venv\Scripts\activate on Windows
+pip install -e .[dev]
+
+# Run locally
+uvicorn main:app --reload --port 8000
 ```
+
+### Frontend Development
+
+```bash
+cd frontend-web  # or frontend-telegram
+python -m venv .venv
+source .venv/bin/activate
+pip install -e .
+
+# Make sure backend is running, then:
+uvicorn main:app --reload --port 8100
+```
+
+## Current Status & Roadmap
+
+### ✅ Completed
+- Service separation architecture
+- Independent Docker compose files for each service
+- Backend API with full CRUD operations
+- Web UI with authentication and device management
+- Telegram Mini App integration
+- API documentation for mobile development
+
+### 🚧 In Progress
+- **Frontend HTTP API clients** - Currently frontends import backend code directly. Need to refactor to use HTTP API (see [frontend-web/README.md](frontend-web/README.md))
+
+### 📋 Planned
+- Mobile app (iOS/Android)
+- WebSocket support for real-time updates
+- Advanced automation rules (ML-based)
+- Email/SMS notifications
+- Multi-user device sharing
+- Historical data analytics
+
+## Configuration
+
+Each service has its own `.env.example` file:
+
+- `backend/.env.example` - Backend configuration
+- `frontend-web/.env.example` - Web UI configuration
+- `frontend-telegram/.env.example` - Telegram app configuration
+- `.env.example` - Full stack configuration
+
+Key environment variables:
+
+```bash
+# Backend
+PLANT_DATABASE_URL=sqlite+aiosqlite:///data/plant.db
+PLANT_REDIS_URL=redis://redis:6379/0
+PLANT_ADMIN_EMAILS=admin@example.com
+PLANT_SESSION_SECRET_KEY=your-secret-here
+
+# Frontends
+BACKEND_API_URL=http://api:8000
+```
+
+## Deployment
+
+### Option 1: Full Stack (Docker Compose)
+
+```bash
+# Production docker-compose.yml
+docker compose -f docker-compose.prod.yml up -d
+```
+
+### Option 2: Individual Services
+
+Deploy each service to separate infrastructure:
+
+```bash
+# Backend to AWS ECS/Fargate
+# Frontend-web to Vercel/Netlify
+# Nginx to separate load balancer
+```
+
+### Option 3: Kubernetes
+
+Each service has a Dockerfile ready for K8s deployment. Create deployment manifests for each service.
+
+## Testing
+
+```bash
+cd backend
+pip install -e .[dev]
+pytest
+```
+
+## API Documentation
+
+- Interactive Swagger UI: `http://localhost:8000/docs`
+- ReDoc: `http://localhost:8000/redoc`
+- Mobile dev guide: [backend/API.md](backend/API.md)
+
+## License
+
+MIT
+
+## Support
+
+For issues, questions, or contributions, please open an issue on GitHub.
