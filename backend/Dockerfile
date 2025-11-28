@@ -13,7 +13,6 @@ RUN mkdir -p /app/data
 
 COPY pyproject.toml README.md main.py ./
 COPY app ./app
-COPY clients ./clients
 COPY scripts ./scripts
 
 RUN pip install --upgrade pip \

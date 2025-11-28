@@ -94,17 +94,7 @@ services/
 
 ### Raspberry Pi Client Stub
 
-- `clients/pi_client.py` contains a synchronous script that authenticates a device, pushes telemetry, polls `/commands`, and acknowledges executions. It deliberately leaves `get_soil_moisture`, `get_temperature`, and `get_water_level` as placeholders for your hardware integrations, but everything else (config loading, token refresh, CLI, logging) mirrors production behavior.
-- Provide credentials via `device_config.json` or environment variables. Example config:
-  ```json
-  {
-    "api_base_url": "https://api.example.com",
-    "device_id": "uuid-here",
-    "device_secret": "secret-here"
-  }
-  ```
-- Update `API_BASE_URL`, `DEVICE_ID`, `DEVICE_SECRET`, and the hard-coded `sensor_id` UUIDs to match the device + sensor rows you provisioned via the API (the defaults already align with the bootstrap script output).
-- Install client deps on the Pi (typically `pip install requests`, or `pip install -e .[pi]` locally) and run `python clients/pi_client.py`. Environment variables (`PLANT_API_BASE_URL`, `PLANT_DEVICE_ID`, etc.) override the defaults printed by the bootstrap script. The loop sends telemetry every `POLL_INTERVAL_SECONDS` and logs commands from the backend.
+- Moved to `../device-client/pi_client.py` for a standalone drop-in. Provision a device in the Admin UI, copy the JSON snippet (now includes sensor/actuator IDs), save it as `device-client/device_config.json`, then run `python pi_client.py --config device_config.json --once` to smoke-test telemetry + commands. See `device-client/README.md` for more.
 
 ## API Highlights
 
