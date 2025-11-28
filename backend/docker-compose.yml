@@ -3,6 +3,8 @@ services:
     image: redis:7-alpine
     restart: unless-stopped
     # Port not exposed to host - only accessible within Docker network
+    networks:
+      - plant_stack
 
   api:
     build:
@@ -19,6 +21,8 @@ services:
       - "8000:8000"
     volumes:
       - ./data:/app/data
+    networks:
+      - plant_stack
 
   worker:
     build:
@@ -34,6 +38,13 @@ services:
       - api
     volumes:
       - ./data:/app/data
+    networks:
+      - plant_stack
 
 volumes:
   plant-db:
+
+networks:
+  plant_stack:
+    external: true
+    name: ${PLANT_STACK_NETWORK:-plant_stack}

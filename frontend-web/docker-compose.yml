@@ -1,5 +1,5 @@
 services:
-  web:
+  web_ui:
     build:
       context: ..  # Build from parent directory to access backend code
       dockerfile: frontend-web/Dockerfile
@@ -14,6 +14,13 @@ services:
       # Mount backend code (temporary until refactored to use HTTP API)
       - ../backend/app:/app/app:ro
       - ../backend/data:/app/data
+    networks:
+      - plant_stack
 
 # Note: This frontend still imports backend code directly
 # See README.md for refactoring plan to make it truly standalone
+
+networks:
+  plant_stack:
+    external: true
+    name: ${PLANT_STACK_NETWORK:-plant_stack}

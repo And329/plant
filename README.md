@@ -43,7 +43,7 @@ frontend-telegram/   # Telegram Mini App (standalone)
 └── README.md
 
 nginx/              # Reverse proxy (standalone)
-├── default.conf
+├── default.conf.template
 ├── docker-compose.yml
 └── README.md
 
@@ -58,24 +58,42 @@ Run all services together for local development:
 # 1. Copy environment file
 cp .env.example .env
 
-# 2. Generate SSL certificates (for local HTTPS)
+# 2. Create the shared docker network once (used by every service compose file)
+docker network create plant_stack || true
+
+# 3. Generate SSL certificates (for local HTTPS)
 mkdir -p nginx/certs
 openssl req -x509 -newkey rsa:4096 -keyout nginx/certs/privkey.pem \
     -out nginx/certs/fullchain.pem -days 365 -nodes -subj "/CN=localhost"
 
-# 3. Start all services
+# 4. Start all services
 docker compose up --build
 
-# 4. Bootstrap database (first time only)
+# 5. Bootstrap database (first time only)
 docker compose exec api python -m scripts.bootstrap_db --seed-demo
 
-# 5. Access the application
+# 6. Access the application
 # - Web UI: https://localhost/web
 # - API Docs: https://localhost/docs
 # - Telegram: https://localhost/telegram
 ```
 
 ## Running Services Independently
+
+Create the shared network once (skip if you already ran the full stack setup):
+
+```bash
+docker network create plant_stack || true
+```
+
+Each service's `docker-compose.yml` attaches to this network, so you can launch them independently:
+
+```bash
+cd backend && docker compose up        # API + worker + redis
+cd frontend-web && docker compose up   # Web UI (requires backend running)
+cd frontend-telegram && docker compose up  # Telegram mini app (requires backend)
+cd nginx && docker compose up          # Reverse proxy sitting in front of all services
+```
 
 ### Backend Only
 
@@ -120,12 +138,16 @@ docker compose up --build
 
 ```bash
 cd nginx
+cp .env.example .env  # edit PLANT_*_ORIGIN host:port pairs if nginx runs elsewhere
+# Make sure backend/web/telegram containers are already running
+# The shared docker network defaults to "plant_stack"
+export PLANT_STACK_NETWORK=plant_stack  # optional override
 docker compose up
 
 # Proxy available at http://localhost:80
 ```
 
-**Use case**: Using existing nginx, testing proxy config
+**Use case**: Using existing nginx, testing proxy config while other services run in their own compose projects/networks
 
 ## Mobile App Development
 
