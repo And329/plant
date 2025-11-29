@@ -7,15 +7,17 @@ services:
     volumes:
       - ./default.conf.template:/etc/nginx/templates/default.conf.template:ro
       - ./certs:/etc/nginx/certs:ro
-    networks:
-      - plant_stack
+    env_file:
+      - .env
     environment:
       PLANT_API_ORIGIN: ${PLANT_API_ORIGIN:-api:8000}
       PLANT_WEB_ORIGIN: ${PLANT_WEB_ORIGIN:-web_ui:8100}
       PLANT_TELEGRAM_ORIGIN: ${PLANT_TELEGRAM_ORIGIN:-telegram_web_app:8200}
       PLANT_RESOLVER: ${PLANT_RESOLVER:-127.0.0.11}
+      PLANT_DOMAIN: ${PLANT_DOMAIN:-_}
+    networks:
+      - plant_stack
 
 networks:
   plant_stack:
     external: true
-    name: ${PLANT_STACK_NETWORK:-plant_stack}

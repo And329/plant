@@ -1,4 +1,4 @@
-﻿from datetime import datetime
+from datetime import datetime
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
@@ -10,6 +10,7 @@ class AlertOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID
+    device_id: UUID
     type: AlertType
     severity: AlertSeverity
     message: str

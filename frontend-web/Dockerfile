@@ -6,19 +6,18 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends build-essential curl \
+    && apt-get install -y --no-install-recommends build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy and install frontend-web code
-COPY frontend-web/pyproject.toml frontend-web/README.md ./
-COPY frontend-web/app ./app
-COPY frontend-web/main.py ./
+# Copy frontend-web code
+COPY pyproject.toml ./
+COPY README.md ./
+COPY app ./app
+COPY main.py ./
 
+# Install dependencies
 RUN pip install --upgrade pip \
     && pip install --no-cache-dir .
-
-# Note: This currently still depends on backend code being installed
-# TODO: Refactor to use HTTP API client instead of direct imports
 
 EXPOSE 8100
 

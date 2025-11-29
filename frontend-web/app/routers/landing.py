@@ -10,9 +10,6 @@ router = APIRouter(tags=["site"], include_in_schema=False)
 
 @router.get("/")
 async def landing_page(request: Request):
-    if request.session.get("user_id"):
-        return RedirectResponse(url="/web", status_code=303)
-
     features = [
         {
             "title": "Real-time telemetry",

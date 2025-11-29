@@ -35,9 +35,13 @@ async def bootstrap(seed_demo: bool, email: str, password: str) -> None:
     secret = "demo-device-secret"
 
     async with AsyncSessionLocal() as session:
-        user = (await session.execute(select(User).where(User.email == email))).scalar_one_or_none()
+        user = (
+            await session.execute(select(User).where(User.email == email))
+        ).scalar_one_or_none()
         if user is None:
-            user = User(email=email, password_hash=get_password_hash(password), locale="en")
+            user = User(
+                email=email, password_hash=get_password_hash(password), locale="en"
+            )
             session.add(user)
             await session.flush()
 
@@ -80,9 +84,15 @@ async def bootstrap(seed_demo: bool, email: str, password: str) -> None:
                 )
 
         profile = (
-            await session.execute(select(AutomationProfile).where(AutomationProfile.device_id == device.id))
+            await session.execute(
+                select(AutomationProfile).where(
+                    AutomationProfile.device_id == device.id
+                )
+            )
         ).scalar_one_or_none()
         if profile is None:
+            # Create automation profile with defaults
+            # Note: soil_moisture_min/max and temp_min/max are optional and can be set later via UI
             session.add(
                 AutomationProfile(
                     device_id=device.id,
@@ -106,10 +116,20 @@ async def bootstrap(seed_demo: bool, email: str, password: str) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Initialize database and optional demo fixtures.")
-    parser.add_argument("--seed-demo", action="store_true", help="Seed demo user/device for quick testing")
-    parser.add_argument("--demo-email", default="demo@plant.local", help="Demo user email")
-    parser.add_argument("--demo-password", default="demo1234", help="Demo user password")
+    parser = argparse.ArgumentParser(
+        description="Initialize database and optional demo fixtures."
+    )
+    parser.add_argument(
+        "--seed-demo",
+        action="store_true",
+        help="Seed demo user/device for quick testing",
+    )
+    parser.add_argument(
+        "--demo-email", default="demo@plant.local", help="Demo user email"
+    )
+    parser.add_argument(
+        "--demo-password", default="demo1234", help="Demo user password"
+    )
     args = parser.parse_args()
     asyncio.run(bootstrap(args.seed_demo, args.demo_email, args.demo_password))
 

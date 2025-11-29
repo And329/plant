@@ -1,13 +1,7 @@
-set $plant_api_upstream "${PLANT_API_ORIGIN}";
-set $plant_web_upstream "${PLANT_WEB_ORIGIN}";
-set $plant_telegram_upstream "${PLANT_TELEGRAM_ORIGIN}";
-
-resolver ${PLANT_RESOLVER} valid=30s ipv6=off;
-
 server {
     listen 80;
     listen [::]:80;
-    server_name _;
+    server_name ${PLANT_DOMAIN:-_};
     return 301 https://$host$request_uri;
 }
 
@@ -15,7 +9,15 @@ server {
     listen 443 ssl;
     listen [::]:443 ssl;
     http2 on;
-    server_name _;
+    server_name ${PLANT_DOMAIN};
+
+    # DNS resolver for dynamic upstreams
+    resolver ${PLANT_RESOLVER} valid=30s ipv6=off;
+
+    # Set upstream variables
+    set $plant_api_upstream "${PLANT_API_ORIGIN}";
+    set $plant_web_upstream "${PLANT_WEB_ORIGIN}";
+    set $plant_telegram_upstream "${PLANT_TELEGRAM_ORIGIN}";
 
     ssl_certificate /etc/nginx/certs/fullchain.pem;
     ssl_certificate_key /etc/nginx/certs/privkey.pem;

@@ -1,0 +1,16 @@
+{
+    "api_base_url": "http://192.168.51.134:8000",
+    "device_id": "11111111-1111-1111-1111-111111111111",
+    "device_secret": "demo-device-secret",
+    "sensor_ids": {
+        "soil_moisture": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+        "air_temperature": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+        "water_level": "cccccccc-cccc-cccc-cccc-cccccccccccc"
+    },
+    "actuator_ids": {
+        "pump": "21111111-1111-1111-1111-111111111111",
+        "lamp": "31111111-1111-1111-1111-111111111111"
+    },
+    "telemetry_interval": 60,
+    "command_interval": 5
+}

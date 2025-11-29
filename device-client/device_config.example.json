@@ -1,0 +1,16 @@
+{
+    "api_base_url": "http://127.0.0.1:8000",
+    "device_id": "<device uuid>",
+    "device_secret": "<device secret>",
+    "sensor_ids": {
+        "soil_moisture": "<sensor id>",
+        "air_temperature": "<sensor id>",
+        "water_level": "<sensor id>"
+    },
+    "actuator_ids": {
+        "pump": "<actuator id>",
+        "lamp": "<actuator id>"
+    },
+    "telemetry_interval": 60,
+    "command_interval": 5
+}

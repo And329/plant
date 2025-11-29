@@ -1,256 +1,467 @@
-﻿{% extends "base.html" %}
-{% block title %}Device · {{ device.name }}{% endblock %}
-{% block content %}
-  <section class="space-y-8">
-    <a href="/web" class="inline-flex items-center gap-2 text-sm text-slate-400 transition hover:text-white">
-      <span aria-hidden="true">&larr;</span> Back to dashboard
+{% extends "base.html" %} {% block title %}Device · {{ device.name }}{% endblock
+%} {% block content %}
+<section class="mx-auto max-w-6xl space-y-6 font-mono text-sm text-slate-900">
+    <a
+        href="/web"
+        class="inline-flex items-center gap-2 text-xs text-slate-600 transition hover:text-slate-900"
+    >
+        <span aria-hidden="true">&larr;</span> Back to dashboard
     </a>
 
-    <div class="flex flex-col gap-4 rounded-3xl border border-white/10 bg-white/5 p-6 shadow-xl shadow-black/20 backdrop-blur md:flex-row md:items-center md:justify-between">
-      <div>
-        <p class="text-xs uppercase tracking-[0.3em] text-brand-light">{{ device.model or "Custom rig" }}</p>
-        <h1 class="text-4xl font-semibold text-white">{{ device.name }}</h1>
-        <p class="text-sm text-slate-300">Last seen <span data-device-detail-last-seen="{{ device.id }}" data-last-seen-iso="{{ device_status.last_seen_iso or '' }}">{{ device_status.last_seen }}</span></p>
-      </div>
-      <div class="flex flex-col gap-4 text-sm text-slate-300">
-        <span
-          data-device-detail-badge="{{ device.id }}"
-          class="inline-flex items-center justify-center gap-3 rounded-full border px-4 py-2 text-sm font-semibold {% if device_status.connected %}border-emerald-300/40 bg-emerald-500/10 text-emerald-100{% else %}border-rose-300/40 bg-rose-500/10 text-rose-100{% endif %}"
-        >
-          <span class="h-2.5 w-2.5 rounded-full {% if device_status.connected %}bg-emerald-300{% else %}bg-rose-300{% endif %}"></span>
-          {{ device_status.status|capitalize }}
-        </span>
-        <div class="text-xs text-slate-400">
-          Device ID
-          <div class="font-mono text-slate-200">{{ device.id }}</div>
+    <div
+        class="flex flex-col gap-4 rounded-2xl border border-slate-300 bg-white p-5 md:flex-row md:items-center md:justify-between"
+    >
+        <div>
+            <p class="text-[11px] uppercase tracking-[0.25em] text-slate-600">
+                {{ device.model or "Custom rig" }}
+            </p>
+            <h1 class="text-2xl font-semibold text-slate-900">
+                {{ device.name }}
+            </h1>
+            <p class="text-[13px] text-slate-700">
+                Last seen
+                <span
+                    data-device-detail-last-seen="{{ device.id }}"
+                    data-last-seen-iso="{{ device_status.last_seen_iso or '' }}"
+                    >{{ device_status.last_seen }}</span
+                >
+            </p>
         </div>
-      </div>
+        <div class="flex flex-col gap-2 text-[12px] text-slate-700">
+            <span
+                data-device-detail-badge="{{ device.id }}"
+                class="inline-flex items-center justify-center gap-3 rounded border px-3 py-1 text-sm font-semibold {% if device_status.connected %}border-emerald-900 bg-emerald-700 text-white{% else %}border-rose-900 bg-rose-700 text-white{% endif %}"
+            >
+                <span class="h-2.5 w-2.5 rounded-full bg-white"></span>
+                {{ device_status.status|capitalize }}
+            </span>
+            <div class="text-[12px] text-slate-700">
+                Device ID
+                <div class="font-mono text-slate-900">{{ device.id }}</div>
+            </div>
+        </div>
     </div>
 
     {% if flash_message %}
-    <div class="rounded-2xl border border-brand/30 bg-brand/10 px-6 py-4 text-brand-light">{{ flash_message }}</div>
+    <div
+        class="rounded-xl border border-emerald-600 bg-emerald-50 px-4 py-3 text-[13px] text-emerald-800"
+    >
+        {{ flash_message }}
+    </div>
     {% endif %}
 
-    <div class="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
-      <div class="space-y-6">
-        <div class="rounded-3xl border border-white/10 bg-white/5 p-6">
-          <div class="flex items-center justify-between">
-            <h2 class="text-xl font-semibold text-white">Sensors</h2>
-            <span class="text-xs uppercase tracking-widest text-slate-400">{{ sensors|length }} channels</span>
-          </div>
-          {% if sensors %}
-          <div class="mt-4 overflow-hidden rounded-2xl border border-white/5">
-            <table class="min-w-full divide-y divide-white/5 text-sm">
-              <thead class="bg-white/5 text-slate-400">
-                <tr>
-                  <th class="px-4 py-3 text-left">Type</th>
-                  <th class="px-4 py-3 text-left">Value</th>
-                  <th class="px-4 py-3 text-left">Recorded</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-white/5 text-slate-200">
-                {% for sensor in sensors %}
-                <tr>
-                  <td class="px-4 py-3 font-medium text-white">{{ sensor.type.value.replace("_", " ") }}</td>
-                  <td class="px-4 py-3">
-                    {% if readings[sensor.id] %}
-                      {{ readings[sensor.id].value }} {{ sensor.unit }}
-                    {% else %}
-                      <span class="text-slate-500">No data</span>
-                    {% endif %}
-                  </td>
-                  <td class="px-4 py-3">
-                    {% if readings[sensor.id] %}
-                      {{ readings[sensor.id].recorded }}
-                    {% else %}
-                      —
-                    {% endif %}
-                  </td>
-                </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
-          {% else %}
-          <p class="mt-4 text-sm text-slate-400">No sensors registered.</p>
-          {% endif %}
-        </div>
-
-        <div class="rounded-3xl border border-white/10 bg-white/5 p-6">
-          <div class="flex items-center justify-between">
-            <h2 class="text-xl font-semibold text-white">Manual controls</h2>
-            <span class="text-xs uppercase tracking-widest text-slate-400">{{ actuators|length }} actuators</span>
-          </div>
-          {% if actuators %}
-          <div class="mt-4 space-y-3">
-            {% for actuator in actuators %}
-            <div class="flex flex-wrap items-center justify-between rounded-2xl border border-white/10 bg-slate-900/40 px-4 py-3">
-              <div>
-                <p class="text-sm font-semibold text-white">{{ actuator.type.value|capitalize }}</p>
-                <p class="text-xs text-slate-400">State: {{ actuator.state }}</p>
-              </div>
-              <div class="flex gap-2">
-                <form method="post" action="/web/devices/{{ device.id }}/commands">
-                  <input type="hidden" name="actuator_id" value="{{ actuator.id }}" />
-                  <input type="hidden" name="command" value="on" />
-                  <button type="submit" class="rounded-full bg-brand px-4 py-1 text-xs font-semibold text-white transition hover:bg-brand-dark">Turn on</button>
-                </form>
-                <form method="post" action="/web/devices/{{ device.id }}/commands">
-                  <input type="hidden" name="actuator_id" value="{{ actuator.id }}" />
-                  <input type="hidden" name="command" value="off" />
-                  <button type="submit" class="rounded-full border border-white/30 px-4 py-1 text-xs font-semibold text-white transition hover:bg-white/10">Turn off</button>
-                </form>
-              </div>
-            </div>
-            {% endfor %}
-          </div>
-          {% else %}
-          <p class="mt-4 text-sm text-slate-400">No actuators registered for this device.</p>
-          {% endif %}
-        </div>
-      </div>
-
-      <div class="space-y-6">
-        <div class="rounded-3xl border border-white/10 bg-white/5 p-6">
-          <h2 class="text-xl font-semibold text-white">Automation profile</h2>
-          <form method="post" action="/web/devices/{{ device.id }}/automation" class="mt-4 space-y-6 text-sm text-slate-300">
-            <div class="space-y-2">
-              <p class="text-xs uppercase tracking-widest text-slate-400">Watering</p>
-              <div class="grid gap-3 sm:grid-cols-2">
-                <label class="space-y-1">
-                  <span class="text-xs text-slate-400">Soil moisture min (%)</span>
-                  <input type="number" step="0.1" name="soil_moisture_min" value="{{ profile.soil_moisture_min if profile else '' }}" required class="w-full rounded-2xl border border-white/10 bg-slate-900/50 px-3 py-2 text-white focus:border-brand focus:outline-none" />
-                </label>
-                <label class="space-y-1">
-                  <span class="text-xs text-slate-400">Soil moisture max (%)</span>
-                  <input type="number" step="0.1" name="soil_moisture_max" value="{{ profile.soil_moisture_max if profile else '' }}" required class="w-full rounded-2xl border border-white/10 bg-slate-900/50 px-3 py-2 text-white focus:border-brand focus:outline-none" />
-                </label>
-                <label class="space-y-1">
-                  <span class="text-xs text-slate-400">Min water level (%)</span>
-                  <input type="number" step="0.1" name="min_water_level" value="{{ profile.min_water_level if profile else '' }}" class="w-full rounded-2xl border border-white/10 bg-slate-900/50 px-3 py-2 text-white focus:border-brand focus:outline-none" />
-                </label>
-                <label class="space-y-1">
-                  <span class="text-xs text-slate-400">Water duration (sec)</span>
-                  <input type="number" name="watering_duration_sec" value="{{ profile.watering_duration_sec if profile else '' }}" class="w-full rounded-2xl border border-white/10 bg-slate-900/50 px-3 py-2 text-white focus:border-brand focus:outline-none" />
-                </label>
-                <label class="space-y-1">
-                  <span class="text-xs text-slate-400">Cooldown (min)</span>
-                  <input type="number" name="watering_cooldown_min" value="{{ profile.watering_cooldown_min if profile else '' }}" class="w-full rounded-2xl border border-white/10 bg-slate-900/50 px-3 py-2 text-white focus:border-brand focus:outline-none" />
-                </label>
-              </div>
-            </div>
-            <div class="space-y-2">
-              <p class="text-xs uppercase tracking-widest text-slate-400">Temperature alerts</p>
-              <div class="grid gap-3 sm:grid-cols-2">
-                <label class="space-y-1">
-                  <span class="text-xs text-slate-400">Temp min (°C)</span>
-                  <input type="number" step="0.1" name="temp_min" value="{{ profile.temp_min if profile else '' }}" required class="w-full rounded-2xl border border-white/10 bg-slate-900/50 px-3 py-2 text-white focus:border-brand focus:outline-none" />
-                </label>
-                <label class="space-y-1">
-                  <span class="text-xs text-slate-400">Temp max (°C)</span>
-                  <input type="number" step="0.1" name="temp_max" value="{{ profile.temp_max if profile else '' }}" required class="w-full rounded-2xl border border-white/10 bg-slate-900/50 px-3 py-2 text-white focus:border-brand focus:outline-none" />
-                </label>
-              </div>
-            </div>
-            <div class="space-y-2">
-              <p class="text-xs uppercase tracking-widest text-slate-400">Light</p>
-              <div class="grid gap-3 sm:grid-cols-2">
-                <label class="space-y-1">
-                  <span class="text-xs text-slate-400">On interval (min)</span>
-                  <input type="number" min="1" name="lamp_on_minutes" value="{{ lamp_schedule.get('on_minutes') if lamp_schedule else '' }}" class="w-full rounded-2xl border border-white/10 bg-slate-900/50 px-3 py-2 text-white focus:border-brand focus:outline-none" />
-                </label>
-                <label class="space-y-1">
-                  <span class="text-xs text-slate-400">Off interval (min)</span>
-                  <input type="number" min="1" name="lamp_off_minutes" value="{{ lamp_schedule.get('off_minutes') if lamp_schedule else '' }}" class="w-full rounded-2xl border border-white/10 bg-slate-900/50 px-3 py-2 text-white focus:border-brand focus:outline-none" />
-                </label>
-              </div>
-            </div>
-            <button type="submit" class="w-full rounded-2xl bg-brand px-4 py-3 text-sm font-semibold text-white transition hover:bg-brand-dark">Save automation</button>
-          </form>
-        </div>
-      </div>
-    </div>
-
-    <div class="rounded-3xl border border-white/10 bg-white/5 p-6">
-      <div class="flex items-center justify-between">
-        <h2 class="text-xl font-semibold text-white">Alerts</h2>
-        <span class="text-xs uppercase tracking-widest text-slate-400">{{ alerts|length }} events</span>
-      </div>
-      {% if alerts %}
-      <div class="mt-4 overflow-hidden rounded-2xl border border-white/5">
-        <table class="min-w-full divide-y divide-white/5 text-sm">
-          <thead class="bg-white/5 text-slate-400">
-            <tr>
-              <th class="px-4 py-3 text-left">Type</th>
-              <th class="px-4 py-3 text-left">Severity</th>
-              <th class="px-4 py-3 text-left">Message</th>
-              <th class="px-4 py-3 text-left">Created</th>
-              <th class="px-4 py-3 text-left">Status</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-white/5 text-slate-200">
-            {% for alert in alerts %}
-            <tr>
-              <td class="px-4 py-3">{{ alert.type.value.replace("_", " ") }}</td>
-              <td class="px-4 py-3 text-xs uppercase tracking-widest">
-                <span class="{% if alert.severity.value == 'critical' %}text-rose-300{% elif alert.severity.value == 'warn' %}text-amber-300{% else %}text-slate-200{% endif %}">
-                  {{ alert.severity.value }}
-                </span>
-              </td>
-              <td class="px-4 py-3">{{ alert.message }}</td>
-              <td class="px-4 py-3">{{ alert.created_at }}</td>
-              <td class="px-4 py-3">
-                {% if alert.resolved_at %}
-                <span class="rounded-full border border-emerald-300/40 bg-emerald-500/10 px-3 py-1 text-xs text-emerald-100">Resolved</span>
+    <div class="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+        <div class="space-y-4">
+            <div class="rounded-2xl border border-slate-300 bg-white">
+                <div
+                    class="flex items-center justify-between border-b border-slate-300 px-4 py-3"
+                >
+                    <h2 class="text-base font-semibold text-slate-900">
+                        Sensors
+                    </h2>
+                    <span
+                        class="text-[11px] uppercase tracking-[0.2em] text-slate-600"
+                        >{{ sensors|length }} channels</span
+                    >
+                </div>
+                {% if sensors %}
+                <div class="overflow-x-auto">
+                    <table
+                        class="min-w-full border-collapse text-xs text-slate-800"
+                    >
+                        <thead
+                            class="bg-slate-100 text-left font-semibold text-slate-700"
+                        >
+                            <tr>
+                                <th class="border-b border-slate-300 px-4 py-2">
+                                    Type
+                                </th>
+                                <th class="border-b border-slate-300 px-4 py-2">
+                                    Value
+                                </th>
+                                <th class="border-b border-slate-300 px-4 py-2">
+                                    Recorded
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for sensor in sensors %}
+                            <tr class="border-b border-slate-200">
+                                {% set stype = sensor.type.value if sensor.type
+                                is not string else sensor.type %}
+                                <td
+                                    class="px-4 py-2 font-semibold text-slate-900"
+                                >
+                                    {{ stype.replace("_", " ") }}
+                                </td>
+                                <td class="px-4 py-2">
+                                    {% if readings[sensor.id] %} {{
+                                    readings[sensor.id].value }} {{ sensor.unit
+                                    }} {% else %}
+                                    <span class="text-slate-500">No data</span>
+                                    {% endif %}
+                                </td>
+                                <td class="px-4 py-2">
+                                    {% if readings[sensor.id] %} {{
+                                    readings[sensor.id].recorded }} {% else %} —
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
                 {% else %}
-                <span class="rounded-full border border-amber-300/40 bg-amber-500/10 px-3 py-1 text-xs text-amber-100">Active</span>
+                <p class="px-4 py-4 text-[13px] text-slate-600">
+                    No sensors registered.
+                </p>
                 {% endif %}
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-      {% else %}
-      <p class="mt-4 text-sm text-slate-400">No alerts yet.</p>
-      {% endif %}
+            </div>
+
+            <div class="rounded-2xl border border-slate-300 bg-white">
+                <div
+                    class="flex items-center justify-between border-b border-slate-300 px-4 py-3"
+                >
+                    <h2 class="text-base font-semibold text-slate-900">
+                        Manual controls
+                    </h2>
+                    <span
+                        class="text-[11px] uppercase tracking-[0.2em] text-slate-600"
+                        >{{ actuators|length }} actuators</span
+                    >
+                </div>
+                {% if actuators %}
+                <div class="divide-y divide-slate-200">
+                    {% for actuator in actuators %}
+                    <div
+                        class="flex flex-wrap items-center justify-between gap-3 px-4 py-3"
+                    >
+                        <div>
+                            {% set atype = actuator.type.value if actuator.type
+                            is not string else actuator.type %}
+                            <p class="text-sm font-semibold text-slate-900">
+                                {{ atype|replace('_',' ')|capitalize }}
+                            </p>
+                            <p class="text-[12px] text-slate-600">
+                                State: {{ actuator.state }}
+                            </p>
+                        </div>
+                        <div class="flex gap-2 text-[11px]">
+                            <form
+                                method="post"
+                                action="/web/devices/{{ device.id }}/commands"
+                            >
+                                <input
+                                    type="hidden"
+                                    name="actuator_id"
+                                    value="{{ actuator.id }}"
+                                />
+                                <input
+                                    type="hidden"
+                                    name="command"
+                                    value="on"
+                                />
+                                <button
+                                    type="submit"
+                                    class="rounded border border-emerald-900 bg-emerald-700 px-3 py-1 font-semibold text-white transition hover:bg-emerald-600"
+                                >
+                                    Turn on
+                                </button>
+                            </form>
+                            <form
+                                method="post"
+                                action="/web/devices/{{ device.id }}/commands"
+                            >
+                                <input
+                                    type="hidden"
+                                    name="actuator_id"
+                                    value="{{ actuator.id }}"
+                                />
+                                <input
+                                    type="hidden"
+                                    name="command"
+                                    value="off"
+                                />
+                                <button
+                                    type="submit"
+                                    class="rounded border border-slate-400 px-3 py-1 font-semibold text-slate-800 transition hover:bg-slate-100"
+                                >
+                                    Turn off
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="px-4 py-4 text-[13px] text-slate-600">
+                    No actuators registered for this device.
+                </p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="space-y-4">
+            <div class="rounded-2xl border border-slate-300 bg-white">
+                <div
+                    class="flex items-center justify-between border-b border-slate-300 px-4 py-3"
+                >
+                    <h2 class="text-base font-semibold text-slate-900">
+                        Automation
+                    </h2>
+                </div>
+                <form
+                    method="post"
+                    action="/web/devices/{{ device.id }}/automation"
+                    class="space-y-4 px-4 py-4 text-[13px] text-slate-700"
+                >
+                    <div class="space-y-2">
+                        <p
+                            class="text-[11px] uppercase tracking-[0.2em] text-slate-600"
+                        >
+                            Watering
+                        </p>
+                        <div class="grid gap-3 sm:grid-cols-2">
+                            <label class="space-y-1">
+                                <span class="text-[11px] text-slate-600"
+                                    >Soil moisture min (%)</span
+                                >
+                                <input
+                                    type="number"
+                                    step="0.1"
+                                    name="soil_moisture_min"
+                                    value="{{ profile.soil_moisture_min if profile else '' }}"
+                                    required
+                                    class="w-full rounded border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-emerald-500 focus:outline-none"
+                                />
+                            </label>
+                            <label class="space-y-1">
+                                <span class="text-[11px] text-slate-600"
+                                    >Soil moisture max (%)</span
+                                >
+                                <input
+                                    type="number"
+                                    step="0.1"
+                                    name="soil_moisture_max"
+                                    value="{{ profile.soil_moisture_max if profile else '' }}"
+                                    required
+                                    class="w-full rounded border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-emerald-500 focus:outline-none"
+                                />
+                            </label>
+                            <label class="space-y-1">
+                                <span class="text-[11px] text-slate-600"
+                                    >Min water level (%)</span
+                                >
+                                <input
+                                    type="number"
+                                    step="0.1"
+                                    name="min_water_level"
+                                    value="{{ profile.min_water_level if profile else '' }}"
+                                    class="w-full rounded border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-emerald-500 focus:outline-none"
+                                />
+                            </label>
+                            <label class="space-y-1">
+                                <span class="text-[11px] text-slate-600"
+                                    >Water duration (sec)</span
+                                >
+                                <input
+                                    type="number"
+                                    name="watering_duration_sec"
+                                    value="{{ profile.watering_duration_sec if profile else '' }}"
+                                    class="w-full rounded border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-emerald-500 focus:outline-none"
+                                />
+                            </label>
+                            <label class="space-y-1">
+                                <span class="text-[11px] text-slate-600"
+                                    >Cooldown (min)</span
+                                >
+                                <input
+                                    type="number"
+                                    name="watering_cooldown_min"
+                                    value="{{ profile.watering_cooldown_min if profile else '' }}"
+                                    class="w-full rounded border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-emerald-500 focus:outline-none"
+                                />
+                            </label>
+                        </div>
+                    </div>
+                    <button
+                        type="submit"
+                        class="w-full rounded border border-slate-900 bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
+                    >
+                        Save watering
+                    </button>
+                </form>
+                <form
+                    method="post"
+                    action="/web/devices/{{ device.id }}/automation"
+                    class="mt-4 space-y-4 px-4 py-4 text-[13px] text-slate-700 border-t border-slate-200"
+                >
+                    <div class="space-y-2">
+                        <p
+                            class="text-[11px] uppercase tracking-[0.2em] text-slate-600"
+                        >
+                            Temperature alerts
+                        </p>
+                        <div class="grid gap-3 sm:grid-cols-2">
+                            <label class="space-y-1">
+                                <span class="text-[11px] text-slate-600"
+                                    >Temp min (°C)</span
+                                >
+                                <input
+                                    type="number"
+                                    step="0.1"
+                                    name="temp_min"
+                                    value="{{ profile.temp_min if profile else '' }}"
+                                    required
+                                    class="w-full rounded border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-emerald-500 focus:outline-none"
+                                />
+                            </label>
+                            <label class="space-y-1">
+                                <span class="text-[11px] text-slate-600"
+                                    >Temp max (°C)</span
+                                >
+                                <input
+                                    type="number"
+                                    step="0.1"
+                                    name="temp_max"
+                                    value="{{ profile.temp_max if profile else '' }}"
+                                    required
+                                    class="w-full rounded border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-emerald-500 focus:outline-none"
+                                />
+                            </label>
+                        </div>
+                    </div>
+                    <button
+                        type="submit"
+                        class="w-full rounded border border-slate-900 bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
+                    >
+                        Save temperature
+                    </button>
+                </form>
+                <form
+                    method="post"
+                    action="/web/devices/{{ device.id }}/automation"
+                    class="mt-4 space-y-4 px-4 py-4 text-[13px] text-slate-700 border-t border-slate-200"
+                >
+                    <div class="space-y-2">
+                        <p
+                            class="text-[11px] uppercase tracking-[0.2em] text-slate-600"
+                        >
+                            Light
+                        </p>
+                        <div class="grid gap-3 sm:grid-cols-2">
+                            <label class="space-y-1">
+                                <span class="text-[11px] text-slate-600"
+                                    >On interval (min)</span
+                                >
+                                <input
+                                    type="number"
+                                    min="1"
+                                    name="lamp_on_minutes"
+                                    value="{{ lamp_schedule.get('on_minutes') if lamp_schedule else '' }}"
+                                    class="w-full rounded border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-emerald-500 focus:outline-none"
+                                />
+                            </label>
+                            <label class="space-y-1">
+                                <span class="text-[11px] text-slate-600"
+                                    >Off interval (min)</span
+                                >
+                                <input
+                                    type="number"
+                                    min="1"
+                                    name="lamp_off_minutes"
+                                    value="{{ lamp_schedule.get('off_minutes') if lamp_schedule else '' }}"
+                                    class="w-full rounded border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-emerald-500 focus:outline-none"
+                                />
+                            </label>
+                        </div>
+                    </div>
+                    <button
+                        type="submit"
+                        class="w-full rounded border border-slate-900 bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
+                    >
+                        Save light
+                    </button>
+                </form>
+            </div>
+        </div>
     </div>
-  </section>
-{% endblock %}
-{% block extra_scripts %}
-<script>
-  const detailDeviceId = "{{ device.id }}";
-  const pollInterval = {{ device_status_poll_interval|default(10) }} * 1000;
-  const badgeBase = "inline-flex items-center justify-center gap-3 rounded-full border px-4 py-2 text-sm font-semibold";
-  const connectedClasses = " border-emerald-300/40 bg-emerald-500/10 text-emerald-100";
-  const disconnectedClasses = " border-rose-300/40 bg-rose-500/10 text-rose-100";
-  async function refreshDetailStatus() {
-    try {
-      const response = await fetch("/web/devices/statuses", {
-        headers: { "Accept": "application/json" },
-        credentials: "same-origin",
-      });
-      if (!response.ok) return;
-      const data = await response.json();
-      const meta = data[detailDeviceId];
-      if (!meta) return;
-      const badge = document.querySelector(`[data-device-detail-badge="${detailDeviceId}"]`);
-      if (badge) {
-        badge.innerHTML = `<span class="h-2.5 w-2.5 rounded-full ${meta.connected ? "bg-emerald-300" : "bg-rose-300"}"></span>${meta.status}`;
-        badge.className = badgeBase + (meta.connected ? connectedClasses : disconnectedClasses);
-      }
-      const lastSeen = document.querySelector(`[data-device-detail-last-seen="${detailDeviceId}"]`);
-      if (lastSeen) {
-        lastSeen.textContent = meta.last_seen;
-        lastSeen.dataset.lastSeenIso = meta.last_seen_iso || "";
-      }
-    } catch (err) {
-      console.warn("Failed to update device status", err);
-    }
-  }
-  if (pollInterval > 0) {
-    setInterval(refreshDetailStatus, pollInterval);
-    refreshDetailStatus();
-  }
-</script>
+
+    <div class="rounded-2xl border border-slate-300 bg-white">
+        <div
+            class="flex items-center justify-between border-b border-slate-300 px-4 py-3"
+        >
+            <h2 class="text-base font-semibold text-slate-900">Alerts</h2>
+            <span class="text-[11px] uppercase tracking-[0.2em] text-slate-600"
+                >{{ alerts|length }} events</span
+            >
+        </div>
+        {% if alerts %}
+        <div class="overflow-x-auto">
+            <table class="min-w-full border-collapse text-xs text-slate-800">
+                <thead
+                    class="bg-slate-100 text-left font-semibold text-slate-700"
+                >
+                    <tr>
+                        <th class="border-b border-slate-300 px-4 py-2">
+                            Type
+                        </th>
+                        <th class="border-b border-slate-300 px-4 py-2">
+                            Severity
+                        </th>
+                        <th class="border-b border-slate-300 px-4 py-2">
+                            Message
+                        </th>
+                        <th class="border-b border-slate-300 px-4 py-2">
+                            Created
+                        </th>
+                        <th class="border-b border-slate-300 px-4 py-2">
+                            Status
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for alert in alerts %}
+                    <tr class="border-b border-slate-200">
+                        <td class="px-4 py-2">
+                            {{ alert.type.replace("_", " ").title() if
+                            alert.type is string else
+                            alert.type.value.replace("_", " ").title() }}
+                        </td>
+                        <td class="px-4 py-2 text-[11px] font-semibold">
+                            {% set severity = alert.severity if alert.severity
+                            is string else alert.severity.value %}
+                            <span
+                                class="{% if severity == 'critical' %}text-rose-700{% elif severity == 'warn' %}text-amber-700{% else %}text-slate-800{% endif %}"
+                            >
+                                {{ severity }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-2">{{ alert.message }}</td>
+                        <td class="px-4 py-2">{{ alert.created_at }}</td>
+                        <td class="px-4 py-2">
+                            {% if alert.resolved_at %}
+                            <span
+                                class="rounded border border-emerald-900 bg-emerald-700 px-2 py-1 text-[11px] font-semibold text-white"
+                                >Resolved</span
+                            >
+                            {% else %}
+                            <span
+                                class="rounded border border-amber-900 bg-amber-700 px-2 py-1 text-[11px] font-semibold text-white"
+                                >Open</span
+                            >
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="px-4 py-4 text-[13px] text-slate-600">
+            No alerts for this device.
+        </p>
+        {% endif %}
+    </div>
+</section>
 {% endblock %}
