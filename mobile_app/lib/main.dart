@@ -189,7 +189,7 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _baseController = TextEditingController(text: 'http://10.0.2.2:8000');
+  final _baseController = TextEditingController(text: 'http://192.168.8.109:8000');
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();

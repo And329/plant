@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- Allow cleartext by default (LAN/testing); tighten to specific domains if you enable HTTPS later -->
+    <base-config cleartextTrafficPermitted="true" />
+
+    <!-- Explicit allow-list keeps future tightening easy; add/remove as needed -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">192.168.8.109</domain>
+        <domain includeSubdomains="true">192.168.51.134</domain>
+        <domain includeSubdomains="true">api</domain>
+    </domain-config>
+</network-security-config>
