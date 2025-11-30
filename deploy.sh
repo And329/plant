@@ -138,7 +138,7 @@ cd ..
 # Ensure network exists
 docker network inspect plant_stack >/dev/null 2>&1 || docker network create plant_stack
 
-docker compose build --api --worker --web_ui --nginx --redis
+docker compose build api worker web_ui nginx redis
 print_status "Docker images built successfully"
 
 # Step 5: Start services
