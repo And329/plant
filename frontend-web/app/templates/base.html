@@ -12,19 +12,19 @@
       <div class="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
         <a href="/" class="text-lg font-semibold text-slate-900 tracking-tight">Plant</a>
         <nav class="flex items-center gap-6 text-sm">
-          <a href="/app-download" class="text-slate-700 hover:text-slate-900 transition-colors">Mobile app</a>
+          <a href="/app-download" class="text-slate-700 hover:text-slate-900 transition-colors">Мобильное приложение</a>
           {% if request.session.get('user_email') %}
-          <a href="/web" class="text-slate-700 hover:text-slate-900 transition-colors">Dashboard</a>
+          <a href="/web" class="text-slate-700 hover:text-slate-900 transition-colors">Панель</a>
           {% if request.session.get('is_admin') %}
-          <a href="/web/admin" class="text-slate-700 hover:text-slate-900 transition-colors">Admin</a>
+          <a href="/web/admin" class="text-slate-700 hover:text-slate-900 transition-colors">Админ</a>
           {% endif %}
           <a href="/web/logout" class="px-4 py-2 bg-slate-900 text-white rounded-lg border border-slate-900 hover:bg-slate-800 transition-colors">
-            Sign out
+            Выйти
           </a>
           {% else %}
-          <a href="/web/login" class="text-slate-700 hover:text-slate-900 transition-colors">Sign in</a>
+          <a href="/web/login" class="text-slate-700 hover:text-slate-900 transition-colors">Войти</a>
           <a href="/web/register" class="px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-400 transition-colors">
-            Get started
+            Регистрация
           </a>
           {% endif %}
         </nav>

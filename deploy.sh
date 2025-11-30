@@ -125,10 +125,15 @@ if [ ! -f data/plant.db ]; then
         print_status "Applied migration: 003_add_automation_execution_logs.sql"
     fi
 
+    if [ -f migrations/004_create_app_settings.sql ]; then
+        sqlite3 data/plant.db < migrations/004_create_app_settings.sql 2>&1
+        print_status "Applied migration: 004_create_app_settings.sql"
+    fi
+
     print_status "Database created successfully"
 else
     print_warning "Database already exists. To run migrations on existing database:"
-    print_warning "  cd backend && sqlite3 data/plant.db < migrations/003_add_automation_execution_logs.sql"
+    print_warning "  cd backend && sqlite3 data/plant.db < migrations/004_create_app_settings.sql"
 fi
 
 # Step 4: Build Docker images

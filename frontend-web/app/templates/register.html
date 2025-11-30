@@ -1,11 +1,10 @@
-{% extends "base.html" %} {% block title %}Create account - Plant Monitor{%
-endblock %} {% block content %}
+{% extends "base.html" %} {% block title %}Регистрация - Plant Monitor{% endblock %} {% block content %}
 <section
     class="mx-auto max-w-md rounded-3xl border border-slate-200 bg-white p-8 shadow-lg"
 >
-    <h1 class="text-3xl font-semibold text-slate-900">Create your workspace</h1>
+    <h1 class="text-3xl font-semibold text-slate-900">Создайте рабочее пространство</h1>
     <p class="mt-2 text-sm text-slate-600">
-        We’ll spin up a dashboard as soon as you register.
+        Панель появится сразу после регистрации.
     </p>
     {% if error %}
     <div
@@ -28,7 +27,7 @@ endblock %} {% block content %}
         </label>
         <label class="block space-y-2 text-sm">
             <span class="text-xs uppercase tracking-widest text-slate-500"
-                >Password</span
+                >Пароль</span
             >
             <input
                 type="password"
@@ -38,12 +37,12 @@ endblock %} {% block content %}
                 class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 placeholder-slate-400 focus:border-emerald-500 focus:outline-none"
             />
             <span class="text-xs text-slate-500"
-                >Must be at least 8 characters</span
+                >Не меньше 8 символов</span
             >
         </label>
         <label class="block space-y-2 text-sm">
             <span class="text-xs uppercase tracking-widest text-slate-500"
-                >Locale (optional)</span
+                >Локаль (опционально)</span
             >
             <input
                 type="text"
@@ -56,15 +55,15 @@ endblock %} {% block content %}
             type="submit"
             class="w-full rounded-2xl bg-emerald-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-400"
         >
-            Sign up
+            Зарегистрироваться
         </button>
     </form>
     <p class="mt-4 text-center text-sm text-slate-600">
-        Already have an account?
+        Уже есть аккаунт?
         <a
             href="/web/login"
             class="text-emerald-600 underline-offset-4 hover:underline"
-            >Sign in</a
+            >Войти</a
         >
     </p>
 </section>

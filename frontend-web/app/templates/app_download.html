@@ -1,37 +1,37 @@
 {% extends "base.html" %}
-{% block title %}Mobile App - Plant Automation{% endblock %}
+{% block title %}Мобильное приложение - Plant Automation{% endblock %}
 {% block content %}
 <section class="max-w-5xl mx-auto px-6 py-12 space-y-8">
   <div class="rounded-3xl border border-slate-200 bg-white p-8 shadow-lg">
-    <p class="text-xs uppercase tracking-[0.25em] text-emerald-600">Android app</p>
-    <h1 class="mt-2 text-4xl font-semibold text-slate-900">Take the dashboard with you.</h1>
+    <p class="text-xs uppercase tracking-[0.25em] text-emerald-600">Android</p>
+    <h1 class="mt-2 text-4xl font-semibold text-slate-900">Дашборд всегда с собой.</h1>
     <p class="mt-3 text-lg text-slate-600">
-      Monitor telemetry, check actuator states, and adjust automation thresholds from your phone. Styled to match the web UI.
+      Смотрите телеметрию, состояние актуаторов и редактируйте автоматизацию с телефона в стиле веб-интерфейса.
     </p>
     <div class="mt-5 flex flex-wrap gap-3">
       <a href="{{ backend_base }}/app-download/latest"
          class="rounded-full bg-slate-900 px-6 py-3 text-white font-semibold shadow hover:bg-slate-800 transition">
-        Download APK
+        Скачать APK
       </a>
     </div>
   </div>
 
   <div class="grid gap-6 md:grid-cols-2">
     <div class="rounded-2xl border border-slate-200 bg-white p-6">
-      <h2 class="text-xl font-semibold text-slate-900">How to install</h2>
+      <h2 class="text-xl font-semibold text-slate-900">Как установить</h2>
       <ol class="mt-3 space-y-2 text-slate-600 text-sm">
-        <li>1) Download the APK to your Android device.</li>
-        <li>2) Allow installs from this source if prompted.</li>
-        <li>3) Open the app and enter your backend URL and bearer token.</li>
+        <li>1) Скачайте APK на устройство.</li>
+        <li>2) Разрешите установку из этого источника, если потребуется.</li>
+        <li>3) Откройте приложение и укажите URL бэкенда и свои данные.</li>
       </ol>
     </div>
     <div class="rounded-2xl border border-slate-200 bg-white p-6">
-      <h2 class="text-xl font-semibold text-slate-900">What’s included</h2>
+      <h2 class="text-xl font-semibold text-slate-900">Что внутри</h2>
       <ul class="mt-3 space-y-2 text-slate-600 text-sm">
-        <li>• Device list with status and last seen</li>
-        <li>• Device detail with latest telemetry and actuators</li>
-        <li>• Automation editor (thresholds, watering, light schedule)</li>
-        <li>• Dark theme aligned with the web experience</li>
+        <li>• Список устройств со статусом и временем последнего сигнала</li>
+        <li>• Детали устройства с телеметрией и актуаторами</li>
+        <li>• Редактор автоматизации (пороги, полив, свет)</li>
+        <li>• Тема в стиле веб-интерфейса</li>
       </ul>
     </div>
   </div>

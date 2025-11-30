@@ -1,11 +1,10 @@
-{% extends "base.html" %} {% block title %}Device · {{ device.name }}{% endblock
-%} {% block content %}
+{% extends "base.html" %} {% block title %}Устройство · {{ device.name }}{% endblock %} {% block content %}
 <section class="mx-auto max-w-6xl space-y-6 font-mono text-sm text-slate-900">
     <a
         href="/web"
         class="inline-flex items-center gap-2 text-xs text-slate-600 transition hover:text-slate-900"
     >
-        <span aria-hidden="true">&larr;</span> Back to dashboard
+        <span aria-hidden="true">&larr;</span> Назад к панели
     </a>
 
     <div
@@ -19,7 +18,7 @@
                 {{ device.name }}
             </h1>
             <p class="text-[13px] text-slate-700">
-                Last seen
+                Последний сигнал
                 <span
                     data-device-detail-last-seen="{{ device.id }}"
                     data-last-seen-iso="{{ device_status.last_seen_iso or '' }}"
@@ -36,7 +35,7 @@
                 {{ device_status.status|capitalize }}
             </span>
             <div class="text-[12px] text-slate-700">
-                Device ID
+                ID устройства
                 <div class="font-mono text-slate-900">{{ device.id }}</div>
             </div>
         </div>
@@ -57,11 +56,11 @@
                     class="flex items-center justify-between border-b border-slate-300 px-4 py-3"
                 >
                     <h2 class="text-base font-semibold text-slate-900">
-                        Sensors
+                        Сенсоры
                     </h2>
                     <span
                         class="text-[11px] uppercase tracking-[0.2em] text-slate-600"
-                        >{{ sensors|length }} channels</span
+                        >{{ sensors|length }} каналов</span
                     >
                 </div>
                 {% if sensors %}
@@ -74,13 +73,13 @@
                         >
                             <tr>
                                 <th class="border-b border-slate-300 px-4 py-2">
-                                    Type
+                                    Тип
                                 </th>
                                 <th class="border-b border-slate-300 px-4 py-2">
-                                    Value
+                                    Значение
                                 </th>
                                 <th class="border-b border-slate-300 px-4 py-2">
-                                    Recorded
+                                    Время
                                 </th>
                             </tr>
                         </thead>
@@ -98,7 +97,7 @@
                                     {% if readings[sensor.id] %} {{
                                     readings[sensor.id].value }} {{ sensor.unit
                                     }} {% else %}
-                                    <span class="text-slate-500">No data</span>
+                                    <span class="text-slate-500">Нет данных</span>
                                     {% endif %}
                                 </td>
                                 <td class="px-4 py-2">
@@ -113,7 +112,7 @@
                 </div>
                 {% else %}
                 <p class="px-4 py-4 text-[13px] text-slate-600">
-                    No sensors registered.
+                    Сенсоров нет.
                 </p>
                 {% endif %}
             </div>
@@ -123,11 +122,11 @@
                     class="flex items-center justify-between border-b border-slate-300 px-4 py-3"
                 >
                     <h2 class="text-base font-semibold text-slate-900">
-                        Manual controls
+                        Ручное управление
                     </h2>
                     <span
                         class="text-[11px] uppercase tracking-[0.2em] text-slate-600"
-                        >{{ actuators|length }} actuators</span
+                        >{{ actuators|length }} актуаторов</span
                     >
                 </div>
                 {% if actuators %}
@@ -143,7 +142,7 @@
                                 {{ atype|replace('_',' ')|capitalize }}
                             </p>
                             <p class="text-[12px] text-slate-600">
-                                State: {{ actuator.state }}
+                                Состояние: {{ actuator.state }}
                             </p>
                         </div>
                         <div class="flex gap-2 text-[11px]">
@@ -165,7 +164,7 @@
                                     type="submit"
                                     class="rounded border border-emerald-900 bg-emerald-700 px-3 py-1 font-semibold text-white transition hover:bg-emerald-600"
                                 >
-                                    Turn on
+                                    Включить
                                 </button>
                             </form>
                             <form
@@ -186,7 +185,7 @@
                                     type="submit"
                                     class="rounded border border-slate-400 px-3 py-1 font-semibold text-slate-800 transition hover:bg-slate-100"
                                 >
-                                    Turn off
+                                    Выключить
                                 </button>
                             </form>
                         </div>
@@ -195,7 +194,7 @@
                 </div>
                 {% else %}
                 <p class="px-4 py-4 text-[13px] text-slate-600">
-                    No actuators registered for this device.
+                    Актуаторов нет для этого устройства.
                 </p>
                 {% endif %}
             </div>
