@@ -96,6 +96,9 @@ else
     print_status "Root .env already exists"
 fi
 
+# Capture admin email for instructions
+ADMIN_EMAIL=$(grep -m1 '^PLANT_ADMIN_EMAILS=' .env | cut -d= -f2-)
+
 cd backend
 
 # Step 3: Set up database

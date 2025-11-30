@@ -36,10 +36,6 @@ services:
       - .env
     depends_on:
       - api
-    # Note: Frontends currently still access DB directly (needs refactoring)
-    volumes:
-      - ./backend/data:/app/data
-      - ./backend/app:/app/app:ro
     networks:
       - plant_stack
 
