@@ -78,6 +78,31 @@
             </div>
           </form>
         </div>
+        <div class="rounded-2xl border border-slate-300 bg-white p-5">
+          <div class="flex items-center justify-between">
+            <h2 class="text-base font-semibold text-slate-900">Mobile app APK</h2>
+            <a href="/app-download" class="text-[12px] font-semibold text-emerald-700 hover:text-emerald-800">Download page</a>
+          </div>
+          {% if apk_meta %}
+          <div class="mt-3 rounded border border-slate-300 bg-slate-50 p-3 text-[12px] text-slate-800">
+            <div class="font-semibold text-slate-900">{{ apk_meta.original_name or "plant-app.apk" }}</div>
+            <div class="text-slate-600">Uploaded: {{ apk_meta.uploaded_at }}</div>
+            <div class="text-slate-600">Size: {{ apk_meta.size_human or (apk_meta.size_bytes ~ ' bytes') }}</div>
+            <div class="mt-1">
+              <a href="{{ backend_base }}/app-download/latest" class="text-emerald-700 hover:text-emerald-800">Download latest</a>
+            </div>
+          </div>
+          {% else %}
+          <p class="mt-3 text-[13px] text-slate-600">No APK uploaded yet.</p>
+          {% endif %}
+          <form method="post" action="/web/admin/mobile-apk" enctype="multipart/form-data" class="mt-3 space-y-3">
+            <label class="block text-sm">
+              <span class="text-[11px] uppercase tracking-[0.2em] text-slate-600">Upload .apk</span>
+              <input type="file" name="file" accept=".apk" required class="mt-1 w-full rounded border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 file:mr-3 file:cursor-pointer file:rounded border file:border-slate-300 file:bg-slate-900 file:px-3 file:py-1 file:text-sm file:font-semibold file:text-white focus:border-emerald-500 focus:outline-none" />
+            </label>
+            <button type="submit" class="w-full rounded border border-slate-900 bg-slate-900 px-3 py-2 text-sm font-semibold text-white transition hover:bg-slate-800">Upload APK</button>
+          </form>
+        </div>
       </div>
 
       <div class="rounded-2xl border border-slate-300 bg-white">

@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from uuid import UUID
 
 import httpx
-from fastapi import APIRouter, Form, Request
+from fastapi import APIRouter, File, Form, Request, UploadFile
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
@@ -52,8 +52,8 @@ def _is_authenticated(request: Request) -> bool:
 
 
 def _is_admin(request: Request) -> bool:
-    """Check if user is admin."""
-    return request.session.get("is_admin", False)
+    """Check if user is admin (flag from backend auth)."""
+    return bool(request.session.get("is_admin"))
 
 
 def _time_since(moment_iso: str | None) -> tuple[str, int | None]:
@@ -117,7 +117,7 @@ async def login_submit(
         request.session["refresh_token"] = auth_response["refresh_token"]
         request.session["user_id"] = auth_response["user"]["id"]
         request.session["user_email"] = auth_response["user"]["email"]
-        request.session["is_admin"] = auth_response["user"]["email"] in ADMIN_EMAILS
+        request.session["is_admin"] = auth_response.get("is_admin", False)
 
         return RedirectResponse(url="/web", status_code=303)
 
@@ -157,7 +157,7 @@ async def register_submit(
         request.session["refresh_token"] = auth_response["refresh_token"]
         request.session["user_id"] = auth_response["user"]["id"]
         request.session["user_email"] = auth_response["user"]["email"]
-        request.session["is_admin"] = auth_response["user"]["email"] in ADMIN_EMAILS
+        request.session["is_admin"] = auth_response.get("is_admin", False)
 
         return RedirectResponse(url="/web", status_code=303)
 
@@ -275,6 +275,7 @@ async def admin_panel(request: Request):
             "devices": device_cards,
             "unclaimed": [],
             "telegram_bot_token": "",  # TODO: Add settings API
+            "apk_meta": await client.get_apk_meta(),
         }
         return templates.TemplateResponse("admin.html", context)
 
@@ -378,6 +379,29 @@ async def admin_update_telegram(request: Request, bot_token: str = Form("")):
             "status": "success",
             "text": "Telegram bot token cleared locally (no backend persistence yet).",
         }
+    return RedirectResponse(url="/web/admin", status_code=303)
+
+
+@router.post("/admin/mobile-apk")
+async def admin_upload_mobile_apk(request: Request, file: UploadFile = File(...)):
+    """Upload APK via backend (admin only)."""
+    if not _is_authenticated(request):
+        return RedirectResponse(url="/web/login", status_code=303)
+    if not _is_admin(request):
+        return RedirectResponse(url="/web", status_code=303)
+
+    client = _get_api_client()
+    try:
+        contents = await file.read()
+        await client.upload_apk(contents, file.filename or "app.apk", request)
+        request.session["admin_flash"] = {"status": "success", "text": f"Uploaded {file.filename or 'APK'}."}
+    except httpx.HTTPStatusError as e:
+        msg = "Upload failed"
+        if e.response.status_code == 400:
+            msg = "Only .apk files are allowed"
+        elif e.response.status_code == 403:
+            msg = "Admins only"
+        request.session["admin_flash"] = {"status": "error", "text": msg}
     return RedirectResponse(url="/web/admin", status_code=303)
 
 

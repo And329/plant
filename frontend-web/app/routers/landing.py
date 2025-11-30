@@ -3,9 +3,11 @@ from __future__ import annotations
 from fastapi import APIRouter, Request
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
+import os
 
 templates = Jinja2Templates(directory="app/templates")
 router = APIRouter(tags=["site"], include_in_schema=False)
+BACKEND_API_URL = os.getenv("BACKEND_API_URL", "http://api:8000")
 
 
 @router.get("/")
@@ -33,5 +35,16 @@ async def landing_page(request: Request):
         "request": request,
         "features": features,
         "steps": steps,
+        "backend_base": BACKEND_API_URL.rstrip("/"),
     }
     return templates.TemplateResponse("landing.html", context)
+
+
+@router.get("/app-download")
+async def app_download(request: Request):
+    """Public mobile app download page (links to backend-served APK)."""
+    context = {
+        "request": request,
+        "backend_base": BACKEND_API_URL.rstrip("/"),
+    }
+    return templates.TemplateResponse("app_download.html", context)

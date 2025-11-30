@@ -65,7 +65,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    command: python -m app.workers.automation_worker
+    command: python -m app.workers.automation_worker_v2
     environment:
       PLANT_REDIS_URL: redis://redis:6379/0
     env_file:

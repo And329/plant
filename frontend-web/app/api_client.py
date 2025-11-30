@@ -189,6 +189,22 @@ class APIClient:
         response = await self._request("DELETE", f"/devices/{device_id}", request=request)
         response.raise_for_status()
 
+    # Mobile app APK
+    async def get_apk_meta(self) -> dict[str, Any] | None:
+        """Fetch APK metadata; returns None if not found."""
+        res = await self._request("GET", "/app-download/meta")
+        if res.status_code == 404:
+            return None
+        res.raise_for_status()
+        return res.json()
+
+    async def upload_apk(self, file: bytes, filename: str, request: Request) -> dict[str, Any]:
+        """Upload APK (admin only)."""
+        files = {"file": (filename, file, "application/vnd.android.package-archive")}
+        res = await self._request("POST", "/admin/mobile-apk", request=request, files=files)
+        res.raise_for_status()
+        return res.json()
+
     async def claim_device(self, device_id: UUID, device_secret: str, request: Request) -> dict[str, Any]:
         """Claim a device to user account.
 
