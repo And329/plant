@@ -69,35 +69,34 @@ fi
 echo ""
 echo "Step 2: Configuring environment..."
 
-cd backend
-
+# Use root-level .env consumed by docker-compose.yml
 if [ ! -f .env ]; then
-    print_warning ".env file not found. Creating from template..."
+    print_warning "Root .env not found. Creating..."
 
-    # Generate secret key
-    SECRET_KEY=$(python3 -c "import secrets; print(secrets.token_urlsafe(32))")
-
-    # Ask for admin email
     read -p "Enter admin email address: " ADMIN_EMAIL
+    SESSION_SECRET=$(python3 -c "import secrets; print(secrets.token_urlsafe(32))")
+    JWT_SECRET=$(python3 -c "import secrets; print(secrets.token_urlsafe(48))")
 
     cat > .env <<EOF
-# Database
-DATABASE_URL=sqlite+aiosqlite:///./data/plant.db
+# Backend config (PLANT_ prefix)
+PLANT_DATABASE_URL=sqlite+aiosqlite:///./data/plant.db
+PLANT_REDIS_URL=redis://redis:6379/0
+PLANT_ADMIN_EMAILS=$ADMIN_EMAIL
+PLANT_SESSION_SECRET_KEY=$SESSION_SECRET
+PLANT_JWT_SECRET_KEY=$JWT_SECRET
 
-# Security
-SECRET_KEY=$SECRET_KEY
-ADMIN_EMAILS=$ADMIN_EMAIL
+# Frontends
+BACKEND_API_URL=http://api:8000
 
-# Redis
-REDIS_URL=redis://redis:6379/0
-
-# CORS
-CORS_ORIGINS=http://localhost:8000,http://localhost:3000
+# Network
+PLANT_STACK_NETWORK=plant_stack
 EOF
-    print_status ".env file created"
+    print_status "Root .env created"
 else
-    print_status ".env file already exists"
+    print_status "Root .env already exists"
 fi
+
+cd backend
 
 # Step 3: Set up database
 echo ""
@@ -134,7 +133,12 @@ echo ""
 echo "Step 4: Building Docker images..."
 print_warning "This may take a few minutes..."
 
-docker compose build --no-cache
+cd ..
+
+# Ensure network exists
+docker network inspect plant_stack >/dev/null 2>&1 || docker network create plant_stack
+
+docker compose build
 print_status "Docker images built successfully"
 
 # Step 5: Start services
@@ -167,22 +171,23 @@ SERVER_IP=$(hostname -I | awk '{print $1}')
 
 echo "Your plant automation system is now running!"
 echo ""
-echo "Web UI:            http://$SERVER_IP:8000/web"
+echo "Web UI (frontend): http://$SERVER_IP:8100/web"
 echo "API:               http://$SERVER_IP:8000"
+echo "Nginx (optional):  http://$SERVER_IP:80"
 echo "Database Manager:  http://$SERVER_IP:8081"
 echo "Mobile App Download: http://$SERVER_IP:8000/app-download"
 echo ""
 echo "Next steps:"
-echo "1. Register an admin account at: http://$SERVER_IP:8000/web/register"
+echo "1. Register an admin account at: http://$SERVER_IP:8100/web/register"
 echo "   Use the email: $ADMIN_EMAIL"
 echo ""
 echo "2. Login and access the Admin panel to provision devices"
 echo ""
 echo "Useful commands:"
-echo "  View logs:        cd backend && docker compose logs -f"
-echo "  Restart services: cd backend && docker compose restart"
-echo "  Stop services:    cd backend && docker compose down"
-echo "  Check status:     cd backend && docker compose ps"
+echo "  View logs:        docker compose logs -f"
+echo "  Restart services: docker compose restart"
+echo "  Stop services:    docker compose down"
+echo "  Check status:     docker compose ps"
 echo ""
 echo "For detailed documentation, see: DEPLOYMENT.md"
 echo ""
