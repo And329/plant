@@ -58,5 +58,4 @@ volumes:
 
 networks:
     plant_stack:
-        external: true
-        name: ${PLANT_STACK_NETWORK:-plant_stack}
+        driver: bridge
