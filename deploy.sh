@@ -135,10 +135,15 @@ if [ ! -f data/plant.db ]; then
         print_status "Applied migration: 005_add_commands_payload.sql"
     fi
 
+    if [ -f migrations/006_add_commands_message.sql ]; then
+        sqlite3 data/plant.db < migrations/006_add_commands_message.sql 2>&1 || print_warning "Migration 006 skipped (already applied or not needed)"
+        print_status "Applied migration: 006_add_commands_message.sql"
+    fi
+
     print_status "Database created successfully"
 else
     print_warning "Database already exists. To run migrations on existing database:"
-    print_warning "  cd backend && sqlite3 data/plant.db < migrations/005_add_commands_payload.sql"
+    print_warning "  cd backend && sqlite3 data/plant.db < migrations/006_add_commands_message.sql"
 fi
 
 # Step 4: Build Docker images
