@@ -2,45 +2,24 @@
 {% block title %}Автоматизация растений{% endblock %}
 {% block content %}
 <div class="min-h-[70vh] flex items-center justify-center">
-  <div class="w-full max-w-4xl mx-auto text-center space-y-8 px-4 sm:px-6">
-    <!-- Main headline -->
-    <h1 class="text-4xl sm:text-5xl lg:text-6xl font-normal text-slate-900 tracking-tight leading-tight">
-      Автоматизируйте выращивание
+  <div class="w-full max-w-2xl mx-auto text-center space-y-6 px-4 sm:px-6">
+    <h1 class="text-4xl sm:text-5xl font-semibold text-slate-900 tracking-tight">
+      Plant Automation
     </h1>
-
-    <!-- Subtitle -->
-    <p class="text-lg sm:text-xl text-slate-600 font-light max-w-2xl mx-auto">
-      Следите за влажностью, температурой и уровнем воды.
-      Управляйте поливом и светом удаленно.
+    <p class="text-base sm:text-lg text-slate-600">
+      Минимальный интерфейс для входа и загрузки мобильного приложения.
     </p>
-
-    <!-- CTA buttons -->
-    <div class="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center pt-2 sm:pt-4">
-      <a href="/web/register"
-         class="px-7 py-3 bg-slate-900 text-white rounded-lg font-medium hover:bg-slate-800 transition-colors shadow-sm">
-        Начать
-      </a>
-      <a href="/web/login"
-         class="px-7 py-3 border border-slate-300 text-slate-700 rounded-lg font-medium hover:border-slate-400 hover:bg-slate-50 transition-colors">
+    <div class="flex flex-col sm:flex-row gap-3 justify-center pt-2">
+      <a href="/web/login" class="px-6 py-3 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors">
         Войти
       </a>
-      <a href="/app-download"
-         class="px-7 py-3 border border-emerald-300 text-emerald-700 rounded-lg font-medium hover:border-emerald-400 hover:bg-emerald-50 transition-colors">
+      <a href="/web/register" class="px-6 py-3 border border-slate-300 text-slate-700 rounded-lg hover:border-slate-400 hover:bg-slate-50 transition-colors">
+        Регистрация
+      </a>
+      <a href="/app-download" class="px-6 py-3 border border-emerald-300 text-emerald-700 rounded-lg hover:border-emerald-400 hover:bg-emerald-50 transition-colors">
         Мобильное приложение
       </a>
     </div>
-  </div>
-</div>
-
-<!-- Simple features section -->
-<div class="max-w-6xl mx-auto px-4 sm:px-6 pb-16 sm:pb-20">
-  <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-8 sm:gap-12">
-    {% for feature in features %}
-    <div class="space-y-3 text-left sm:text-left">
-      <h3 class="text-lg font-medium text-slate-900">{{ feature.title }}</h3>
-      <p class="text-slate-600 leading-relaxed">{{ feature.body }}</p>
-    </div>
-    {% endfor %}
   </div>
 </div>
 {% endblock %}
