@@ -1,39 +1,45 @@
-{% extends "base.html" %}
-{% block title %}Мобильное приложение - Plant Automation{% endblock %}
-{% block content %}
+{% extends "base.html" %} {% block title %}Мобильное приложение - Plant
+Automation{% endblock %} {% block content %}
 <section class="max-w-5xl mx-auto px-6 py-12 space-y-8">
-  <div class="rounded-3xl border border-slate-200 bg-white p-8 shadow-lg">
-    <p class="text-xs uppercase tracking-[0.25em] text-emerald-600">Android</p>
-    <h1 class="mt-2 text-4xl font-semibold text-slate-900">Дашборд всегда с собой.</h1>
-    <p class="mt-3 text-lg text-slate-600">
-      Смотрите телеметрию, состояние актуаторов и редактируйте автоматизацию с телефона в стиле веб-интерфейса.
-    </p>
-    <div class="mt-5 flex flex-wrap gap-3">
-      <a href="https://rt.329.run:8443/app-download/latest"
-         class="rounded-full bg-slate-900 px-6 py-3 text-white font-semibold shadow hover:bg-slate-800 transition">
-        Скачать APK
-      </a>
+    <div class="rounded-3xl border border-slate-200 bg-white p-8 shadow-lg">
+        <p class="text-xs uppercase tracking-[0.25em] text-emerald-600">
+            Android
+        </p>
+        <h1 class="mt-2 text-4xl font-semibold text-slate-900">
+            Скачайте наше мобильное приложени.
+        </h1>
+        <p class="mt-3 text-lg text-slate-600">Описание приложения1</p>
+        <div class="mt-5 flex flex-wrap gap-3">
+            <a
+                href="https://rt.329.run:8443/app-download/latest"
+                class="rounded-full bg-slate-900 px-6 py-3 text-white font-semibold shadow hover:bg-slate-800 transition"
+            >
+                Скачать APK
+            </a>
+        </div>
     </div>
-  </div>
 
-  <div class="grid gap-6 md:grid-cols-2">
-    <div class="rounded-2xl border border-slate-200 bg-white p-6">
-      <h2 class="text-xl font-semibold text-slate-900">Как установить</h2>
-      <ol class="mt-3 space-y-2 text-slate-600 text-sm">
-        <li>1) Скачайте APK на устройство.</li>
-        <li>2) Разрешите установку из этого источника, если потребуется.</li>
-        <li>3) Откройте приложение и укажите URL бэкенда и свои данные.</li>
-      </ol>
+    <div class="grid gap-6 md:grid-cols-2">
+        <div class="rounded-2xl border border-slate-200 bg-white p-6">
+            <h2 class="text-xl font-semibold text-slate-900">Как установить</h2>
+            <ol class="mt-3 space-y-2 text-slate-600 text-sm">
+                <li>1) Скачайте APK на устройство.</li>
+                <li>
+                    2) Разрешите установку из этого источника, если потребуется.
+                </li>
+                <li>3) Откройте приложение.</li>
+            </ol>
+        </div>
+        <div class="rounded-2xl border border-slate-200 bg-white p-6">
+            <h2 class="text-xl font-semibold text-slate-900">Что внутри</h2>
+            <ul class="mt-3 space-y-2 text-slate-600 text-sm">
+                <li>
+                    • Список устройств со статусом и временем последнего сигнала
+                </li>
+                <li>• Детали устройства с телеметрией и актуаторами</li>
+                <li>• Редактор автоматизации (пороги, полив, свет)</li>
+            </ul>
+        </div>
     </div>
-    <div class="rounded-2xl border border-slate-200 bg-white p-6">
-      <h2 class="text-xl font-semibold text-slate-900">Что внутри</h2>
-      <ul class="mt-3 space-y-2 text-slate-600 text-sm">
-        <li>• Список устройств со статусом и временем последнего сигнала</li>
-        <li>• Детали устройства с телеметрией и актуаторами</li>
-        <li>• Редактор автоматизации (пороги, полив, свет)</li>
-        <li>• Тема в стиле веб-интерфейса</li>
-      </ul>
-    </div>
-  </div>
 </section>
 {% endblock %}
