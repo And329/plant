@@ -7,8 +7,7 @@ import os
 
 templates = Jinja2Templates(directory="app/templates")
 router = APIRouter(tags=["site"], include_in_schema=False)
-# Prefer the public HTTPS origin for download links by default
-BACKEND_API_URL = os.getenv("BACKEND_API_URL", "https://rt.329.run:8443")
+BACKEND_API_URL = os.getenv("BACKEND_API_URL", "http://api:8000")
 
 
 @router.get("/")
