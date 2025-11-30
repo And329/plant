@@ -27,6 +27,7 @@
         <a href="/" class="text-lg font-semibold tracking-tight text-white">Plant Monitor</a>
         <nav class="flex flex-wrap items-center gap-4 text-sm text-slate-200">
           <a href="/" class="transition hover:text-white">Home</a>
+          <a href="/app-download" class="transition hover:text-white">Mobile app</a>
           {% if request.session.get('user_email') %}
           <a href="/web" class="transition hover:text-white">Dashboard</a>
           {% if request.session.get('is_admin') %}

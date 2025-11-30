@@ -133,6 +133,7 @@ class AutomationWorkerV2:
         results: list[RuleResult] = []
         all_commands: list[Command] = []
         all_alerts: list = []
+        exec_log: AutomationExecutionLog | None = None
 
         for rule in ALL_RULES:
             if not rule.can_run(ctx):
@@ -202,10 +203,13 @@ class AutomationWorkerV2:
             )
             session.add(exec_log)
         except Exception as e:
-            log.debug("Could not save execution log (table may not exist): %s", e)
+            log.warning("Could not save automation execution log: %s", e)
+
+        has_db_changes = bool(all_commands or all_alerts or exec_log)
+        if has_db_changes:
+            await session.commit()
 
         if all_commands or all_alerts:
-            await session.commit()
             log.info(
                 "Device %s automation: %d commands, %d alerts (batch %s)",
                 device.id,

@@ -25,6 +25,15 @@ from app.models.enums import (
 )
 
 
+def _ensure_aware(dt: datetime | None) -> datetime | None:
+    """Coerce naive datetimes to UTC-aware for safe arithmetic."""
+    if dt is None:
+        return None
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt
+
+
 @dataclass
 class RuleContext:
     """Context provided to automation rules."""
@@ -105,7 +114,10 @@ class SoilMoistureRule(AutomationRule):
 
         if last_pump_cmd:
             cooldown_minutes = ctx.profile.watering_cooldown_min
-            elapsed = datetime.now(timezone.utc) - last_pump_cmd.created_at
+            last_created = _ensure_aware(last_pump_cmd.created_at) or datetime.now(
+                timezone.utc
+            )
+            elapsed = datetime.now(timezone.utc) - last_created
             if elapsed < timedelta(minutes=cooldown_minutes):
                 return RuleResult(
                     rule_name=self.name,
@@ -271,7 +283,11 @@ class LightCycleRule(AutomationRule):
             )
 
         now = datetime.now(timezone.utc)
-        last_change = lamp.last_command_at or lamp.created_at or now
+        last_change = (
+            _ensure_aware(lamp.last_command_at)
+            or _ensure_aware(lamp.created_at)
+            or now
+        )
         elapsed = now - last_change
         elapsed_minutes = int(elapsed.total_seconds() / 60)
 

@@ -84,7 +84,7 @@ async def authenticate_device(
     if device is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unknown device")
 
-    if not verify_password(payload.device_secret, device.secret_hash):
+    if device.secret != payload.device_secret:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid secret")
 
     tokens = _build_device_tokens(device, settings)
@@ -112,7 +112,12 @@ async def login(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
 
     tokens = _build_user_tokens(user, settings)
-    return UserTokenResponse(**tokens.model_dump(), user=UserOut.model_validate(user))
+    is_admin = user.email in settings.admin_emails
+    return UserTokenResponse(
+        **tokens.model_dump(),
+        user=UserOut.model_validate(user),
+        is_admin=is_admin,
+    )
 
 
 async def _refresh_tokens(

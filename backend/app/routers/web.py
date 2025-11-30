@@ -2,9 +2,11 @@
 
 import json
 import secrets
+from datetime import datetime
+from pathlib import Path
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Form, Request
+from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import select
@@ -17,6 +19,7 @@ from app.deps import get_app_settings, get_db_session
 from app.models.entities import Alert, Actuator, AutomationProfile, Command, Device, Sensor, SensorReading, User
 from app.models.enums import CommandType
 from app.services.app_settings import delete_setting, get_setting, set_setting
+from app.services.mobile_app import APK_DIR, get_apk_metadata, save_apk_metadata
 from app.services.web_helpers import device_connection_meta, set_session_user, time_since, user_is_admin
 from app.services.provisioning import ensure_default_components
 
@@ -30,6 +33,14 @@ async def _get_session_user(request: Request, session: AsyncSession) -> User | N
         return None
     result = await session.execute(select(User).where(User.id == UUID(user_id)))
     return result.scalar_one_or_none()
+
+
+def _user_is_admin(user: User, settings: Settings) -> bool:
+    return user_is_admin(user, settings)
+
+
+def _device_connection_meta(device: Device, offline_seconds: int):
+    return device_connection_meta(device, offline_seconds)
 
 
 @router.get("/login")
@@ -158,12 +169,14 @@ async def admin_panel(
     ]
     admin_flash = request.session.pop("admin_flash", None)
     telegram_token = await get_setting(session, "telegram_bot_token")
+    apk_meta = await get_apk_metadata(session)
     context = {
         "request": request,
         "unclaimed": unclaimed,
         "admin_flash": admin_flash,
         "devices": device_cards,
         "telegram_bot_token": telegram_token or "",
+        "apk_meta": apk_meta,
     }
     return templates.TemplateResponse("admin.html", context)
 
@@ -194,7 +207,7 @@ async def admin_provision_device(
         owner_id = owner.id
 
     secret = secrets.token_urlsafe(24)
-    device = Device(name=name, model=model, user_id=owner_id, secret_hash=get_password_hash(secret))
+    device = Device(name=name, model=model, user_id=owner_id, secret=secret)
     session.add(device)
     sensors, actuators = await ensure_default_components(session, device)
     await session.commit()
@@ -245,6 +258,39 @@ async def admin_update_telegram(
     return RedirectResponse(url="/web/admin", status_code=303)
 
 
+@router.post("/admin/mobile-apk")
+async def admin_upload_mobile_apk(
+    request: Request,
+    file: UploadFile = File(...),
+    session: AsyncSession = Depends(get_db_session),
+    settings: Settings = Depends(get_app_settings),
+):
+    user = await _get_session_user(request, session)
+    if user is None:
+        return RedirectResponse(url="/web/login", status_code=303)
+    if not _user_is_admin(user, settings):
+        return RedirectResponse(url="/web", status_code=303)
+
+    filename = file.filename or "app.apk"
+    if not filename.lower().endswith(".apk"):
+        request.session["admin_flash"] = {"status": "error", "text": "Please upload an .apk file."}
+        return RedirectResponse(url="/web/admin", status_code=303)
+
+    APK_DIR.mkdir(parents=True, exist_ok=True)
+    timestamp = datetime.utcnow().strftime("%Y%m%d-%H%M%S")
+    stored_path = APK_DIR / f"plant-app-{timestamp}.apk"
+    contents = await file.read()
+    stored_path.write_bytes(contents)
+
+    meta = await save_apk_metadata(session, path=stored_path, original_name=Path(filename).name)
+    size_kb = len(contents) / 1024
+    request.session["admin_flash"] = {
+        "status": "success",
+        "text": f"Uploaded {Path(filename).name} ({size_kb:.1f} KB) at {meta.get('uploaded_at')}",
+    }
+    return RedirectResponse(url="/web/admin", status_code=303)
+
+
 @router.post("/devices/claim")
 async def claim_device_form(
     request: Request,
@@ -264,7 +310,7 @@ async def claim_device_form(
 
     result = await session.execute(select(Device).where(Device.id == device_uuid))
     device = result.scalar_one_or_none()
-    if device is None or not verify_password(device_secret, device.secret_hash):
+    if device is None or device.secret != device_secret:
         request.session["claim_message"] = {"status": "error", "text": "Invalid device credentials"}
         return RedirectResponse(url="/web", status_code=303)
     if device.user_id and device.user_id != user.id:

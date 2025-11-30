@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from . import alerts, auth, commands, devices, landing, telegram_webapp, telemetry, users, web
+from . import alerts, auth, commands, devices, landing, mobile_app, telegram_webapp, telemetry, users, web
 
 API_ROUTERS: tuple[APIRouter, ...] = (
     auth.router,
@@ -9,6 +9,7 @@ API_ROUTERS: tuple[APIRouter, ...] = (
     devices.router,
     alerts.router,
     users.router,
+    mobile_app.router,
 )
 
 WEB_ROUTERS: tuple[APIRouter, ...] = (

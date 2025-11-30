@@ -41,3 +41,4 @@ class DeviceAuthResponse(DeviceTokenResponse):
 
 class UserTokenResponse(TokenPair):
     user: UserOut
+    is_admin: bool
