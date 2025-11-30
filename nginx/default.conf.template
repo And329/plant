@@ -86,3 +86,33 @@ server {
         proxy_set_header Connection "";
     }
 }
+
+# Direct SSL entrypoint for the API on port 8000 (for mobile apps, etc.)
+server {
+    listen 8000 ssl;
+    listen [::]:8000 ssl;
+    server_name ${PLANT_DOMAIN:-_};
+
+    resolver ${PLANT_RESOLVER} valid=30s ipv6=off;
+    set $plant_api_upstream "${PLANT_API_ORIGIN}";
+
+    ssl_certificate /etc/nginx/certs/fullchain.pem;
+    ssl_certificate_key /etc/nginx/certs/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers on;
+
+    access_log /var/log/nginx/plant_api_access.log;
+    error_log /var/log/nginx/plant_api_error.log;
+
+    location / {
+        proxy_pass http://$plant_api_upstream;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Forwarded-Port $server_port;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+    }
+}

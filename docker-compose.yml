@@ -66,6 +66,7 @@ services:
     ports:
       - "80:80"
       - "443:443"
+      - "8000:8000"
     volumes:
       - ./nginx/default.conf.template:/etc/nginx/templates/default.conf.template:ro
       - ${PLANT_CERT_DIR:-./nginx/certs}:/etc/nginx/certs:ro
