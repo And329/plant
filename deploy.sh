@@ -140,10 +140,25 @@ if [ ! -f data/plant.db ]; then
         print_status "Applied migration: 006_add_commands_message.sql"
     fi
 
+    if [ -f migrations/007_add_sensor_readings_recorded_at.sql ]; then
+        sqlite3 data/plant.db < migrations/007_add_sensor_readings_recorded_at.sql 2>&1 || print_warning "Migration 007 skipped (already applied or not needed)"
+        print_status "Applied migration: 007_add_sensor_readings_recorded_at.sql"
+    fi
+
+    if [ -f migrations/008_add_sensor_readings_value_numeric.sql ]; then
+        sqlite3 data/plant.db < migrations/008_add_sensor_readings_value_numeric.sql 2>&1 || print_warning "Migration 008 skipped (already applied or not needed)"
+        print_status "Applied migration: 008_add_sensor_readings_value_numeric.sql"
+    fi
+
+    if [ -f migrations/009_rebuild_sensor_readings.sql ]; then
+        sqlite3 data/plant.db < migrations/009_rebuild_sensor_readings.sql 2>&1 || print_warning "Migration 009 skipped (already applied or not needed)"
+        print_status "Applied migration: 009_rebuild_sensor_readings.sql"
+    fi
+
     print_status "Database created successfully"
 else
     print_warning "Database already exists. To run migrations on existing database:"
-    print_warning "  cd backend && sqlite3 data/plant.db < migrations/006_add_commands_message.sql"
+    print_warning "  cd backend && sqlite3 data/plant.db < migrations/009_rebuild_sensor_readings.sql"
 fi
 
 # Step 4: Build Docker images
