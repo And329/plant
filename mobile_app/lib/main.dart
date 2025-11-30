@@ -37,7 +37,7 @@ class PlantApp extends StatefulWidget {
 }
 
 class _PlantAppState extends State<PlantApp> {
-  String? _baseUrl;
+  String? _baseUrl = 'https://rt.329.run:8443';
   String _token = "";
   bool _isAdmin = false;
 
@@ -189,7 +189,7 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _baseController = TextEditingController(text: 'http://192.168.8.109:8000');
+  final _baseController = TextEditingController(text: 'https://rt.329.run:8443');
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();

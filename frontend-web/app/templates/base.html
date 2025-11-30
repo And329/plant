@@ -7,11 +7,14 @@
     <script src="https://cdn.tailwindcss.com"></script>
   </head>
   <body class="min-h-screen bg-white text-slate-900 antialiased">
-    <!-- Minimal header -->
+    <!-- Minimal, responsive header -->
     <header class="border-b border-slate-200 bg-white/95 backdrop-blur">
-      <div class="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
+      <div class="mx-auto flex max-w-7xl items-center justify-between px-4 sm:px-6 py-4">
         <a href="/" class="text-lg font-semibold text-slate-900 tracking-tight">Plant</a>
-        <nav class="flex items-center gap-6 text-sm">
+        <button class="sm:hidden p-2 rounded-md border border-slate-200 text-slate-700" id="nav-toggle">
+          ☰
+        </button>
+        <nav class="hidden sm:flex items-center gap-6 text-sm" id="nav-links">
           <a href="/app-download" class="text-slate-700 hover:text-slate-900 transition-colors">Мобильное приложение</a>
           {% if request.session.get('user_email') %}
           <a href="/web" class="text-slate-700 hover:text-slate-900 transition-colors">Панель</a>
@@ -28,6 +31,26 @@
           </a>
           {% endif %}
         </nav>
+      </div>
+      <!-- Mobile dropdown -->
+      <div class="sm:hidden" id="nav-mobile" style="display:none;">
+        <div class="px-4 pb-3 space-y-2 text-sm border-t border-slate-200 bg-white">
+          <a href="/app-download" class="block py-2 text-slate-700 hover:text-slate-900 transition-colors">Мобильное приложение</a>
+          {% if request.session.get('user_email') %}
+          <a href="/web" class="block py-2 text-slate-700 hover:text-slate-900 transition-colors">Панель</a>
+          {% if request.session.get('is_admin') %}
+          <a href="/web/admin" class="block py-2 text-slate-700 hover:text-slate-900 transition-colors">Админ</a>
+          {% endif %}
+          <a href="/web/logout" class="block py-2 rounded-md text-center bg-slate-900 text-white border border-slate-900 hover:bg-slate-800 transition-colors">
+            Выйти
+          </a>
+          {% else %}
+          <a href="/web/login" class="block py-2 text-slate-700 hover:text-slate-900 transition-colors">Войти</a>
+          <a href="/web/register" class="block py-2 rounded-md text-center bg-emerald-500 text-white hover:bg-emerald-400 transition-colors">
+            Регистрация
+          </a>
+          {% endif %}
+        </div>
       </div>
     </header>
 
@@ -76,6 +99,15 @@
       window.addEventListener("DOMContentLoaded", () => {
         updateRelativeTimestamps();
         setInterval(updateRelativeTimestamps, 1000);
+
+        // Mobile nav toggle
+        const toggle = document.getElementById("nav-toggle");
+        const mobile = document.getElementById("nav-mobile");
+        if (toggle && mobile) {
+          toggle.addEventListener("click", () => {
+            mobile.style.display = mobile.style.display === "none" ? "block" : "none";
+          });
+        }
       });
     </script>
     {% block extra_scripts %}{% endblock %}
