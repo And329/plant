@@ -1,25 +1,33 @@
-{% extends "base.html" %}
-{% block title %}Автоматизация растений{% endblock %}
+{% extends "base.html" %} {% block title %}Автоматизация растений{% endblock %}
 {% block content %}
 <div class="min-h-[70vh] flex items-center justify-center">
-  <div class="w-full max-w-2xl mx-auto text-center space-y-6 px-4 sm:px-6">
-    <h1 class="text-4xl sm:text-5xl font-semibold text-slate-900 tracking-tight">
-      Plant Automation
-    </h1>
-    <p class="text-base sm:text-lg text-slate-600">
-      Минимальный интерфейс для входа и загрузки мобильного приложения.
-    </p>
-    <div class="flex flex-col sm:flex-row gap-3 justify-center pt-2">
-      <a href="/web/login" class="px-6 py-3 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors">
-        Войти
-      </a>
-      <a href="/web/register" class="px-6 py-3 border border-slate-300 text-slate-700 rounded-lg hover:border-slate-400 hover:bg-slate-50 transition-colors">
-        Регистрация
-      </a>
-      <a href="/app-download" class="px-6 py-3 border border-emerald-300 text-emerald-700 rounded-lg hover:border-emerald-400 hover:bg-emerald-50 transition-colors">
-        Мобильное приложение
-      </a>
+    <div class="w-full max-w-2xl mx-auto text-center space-y-6 px-4 sm:px-6">
+        <h1
+            class="text-4xl sm:text-5xl font-semibold text-slate-900 tracking-tight"
+        >
+            NAME
+        </h1>
+        <p class="text-base sm:text-lg text-slate-600">Описание</p>
+        <div class="flex flex-col sm:flex-row gap-3 justify-center pt-2">
+            <a
+                href="/web/login"
+                class="px-6 py-3 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors"
+            >
+                Войти
+            </a>
+            <a
+                href="/web/register"
+                class="px-6 py-3 border border-slate-300 text-slate-700 rounded-lg hover:border-slate-400 hover:bg-slate-50 transition-colors"
+            >
+                Регистрация
+            </a>
+            <a
+                href="/app-download"
+                class="px-6 py-3 border border-emerald-300 text-emerald-700 rounded-lg hover:border-emerald-400 hover:bg-emerald-50 transition-colors"
+            >
+                Мобильное приложение
+            </a>
+        </div>
     </div>
-  </div>
 </div>
 {% endblock %}

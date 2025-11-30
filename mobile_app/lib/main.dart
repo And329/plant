@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   runApp(const PlantApp());
@@ -41,11 +42,43 @@ class _PlantAppState extends State<PlantApp> {
   String _token = "";
   bool _isAdmin = false;
 
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedSession();
+  }
+
+  Future<void> _loadSavedSession() async {
+    final prefs = await SharedPreferences.getInstance();
+    final base = prefs.getString('baseUrl');
+    final token = prefs.getString('token');
+    final isAdmin = prefs.getBool('isAdmin');
+    if (base != null && base.isNotEmpty && token != null && token.isNotEmpty) {
+      setState(() {
+        _baseUrl = base;
+        _token = token;
+        _isAdmin = isAdmin ?? false;
+      });
+    }
+  }
+
+  Future<void> _saveSession(String base, String token, bool isAdmin) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('baseUrl', base);
+    await prefs.setString('token', token);
+    await prefs.setBool('isAdmin', isAdmin);
+  }
+
   void _logout() {
     setState(() {
       _baseUrl = null;
       _token = "";
       _isAdmin = false;
+    });
+    SharedPreferences.getInstance().then((prefs) {
+      prefs.remove('baseUrl');
+      prefs.remove('token');
+      prefs.remove('isAdmin');
     });
   }
 
@@ -80,12 +113,13 @@ class _PlantAppState extends State<PlantApp> {
 
     final home = (_baseUrl == null)
         ? LoginScreen(
-            onLogin: (base, token, isAdmin) {
+            onLogin: (base, token, isAdmin) async {
               setState(() {
                 _baseUrl = base;
                 _token = token;
                 _isAdmin = isAdmin;
               });
+              await _saveSession(base, token, isAdmin);
             },
           )
         : AppConfig(
