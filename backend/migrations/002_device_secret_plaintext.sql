@@ -1,15 +1,13 @@
 -- Migration: Change device secret from hashed to plaintext
--- This migration adds a 'secret' column and removes 'secret_hash'
+-- Note: This migration is only needed for databases created before the initial schema
+-- was updated to include the 'secret' column. New deployments can skip this.
 
--- Step 1: Add new secret column (nullable initially)
-ALTER TABLE devices ADD COLUMN secret TEXT;
+-- This migration is a no-op for new deployments since 001_initial_schema.sql
+-- already creates the devices table with the 'secret' column.
 
--- Step 2: For existing devices, generate new secrets (since we can't unhash)
--- In production, you'd want to notify admins to re-provision devices
--- For now, we'll just set a placeholder that indicates re-provisioning needed
+-- For existing databases (upgrade path from old schema with secret_hash):
+-- Uncomment the following lines if upgrading from an old deployment:
+-- ALTER TABLE devices ADD COLUMN secret TEXT;
+-- ALTER TABLE devices DROP COLUMN secret_hash;
 
--- Step 3: Drop the old secret_hash column
-ALTER TABLE devices DROP COLUMN secret_hash;
-
--- Note: Existing unclaimed devices will need to be re-provisioned with new secrets
--- Claimed devices don't need secrets anymore (they're already linked to users)
+SELECT 'Migration 002: No changes needed for new deployments' AS status;

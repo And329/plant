@@ -134,11 +134,14 @@ mkdir -p data
 
 ### 4.2 Run Database Migrations
 ```bash
-# Run migrations in order
+# Run initial schema migration
 sqlite3 data/plant.db < migrations/001_initial_schema.sql
-sqlite3 data/plant.db < migrations/002_device_secret_plaintext.sql
+
+# Run additional migrations (002 is a no-op for new deployments)
 sqlite3 data/plant.db < migrations/003_add_automation_execution_logs.sql
 ```
+
+**Note**: Migration 002 is only needed when upgrading from an old deployment. For new deployments, it's automatically handled by the initial schema.
 
 ### 4.3 Verify Database
 ```bash

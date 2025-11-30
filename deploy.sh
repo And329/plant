@@ -110,23 +110,23 @@ if [ ! -f data/plant.db ]; then
 
     # Run migrations in order
     if [ -f migrations/001_initial_schema.sql ]; then
-        sqlite3 data/plant.db < migrations/001_initial_schema.sql
+        sqlite3 data/plant.db < migrations/001_initial_schema.sql 2>&1
         print_status "Applied migration: 001_initial_schema.sql"
     fi
 
     if [ -f migrations/002_device_secret_plaintext.sql ]; then
-        sqlite3 data/plant.db < migrations/002_device_secret_plaintext.sql
-        print_status "Applied migration: 002_device_secret_plaintext.sql"
+        sqlite3 data/plant.db < migrations/002_device_secret_plaintext.sql 2>&1 || print_warning "Migration 002 skipped (already applied or not needed)"
     fi
 
     if [ -f migrations/003_add_automation_execution_logs.sql ]; then
-        sqlite3 data/plant.db < migrations/003_add_automation_execution_logs.sql
+        sqlite3 data/plant.db < migrations/003_add_automation_execution_logs.sql 2>&1
         print_status "Applied migration: 003_add_automation_execution_logs.sql"
     fi
 
     print_status "Database created successfully"
 else
-    print_warning "Database already exists, skipping creation"
+    print_warning "Database already exists. To run migrations on existing database:"
+    print_warning "  cd backend && sqlite3 data/plant.db < migrations/003_add_automation_execution_logs.sql"
 fi
 
 # Step 4: Build Docker images
