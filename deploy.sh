@@ -138,7 +138,7 @@ cd ..
 # Ensure network exists
 docker network inspect plant_stack >/dev/null 2>&1 || docker network create plant_stack
 
-docker compose build
+docker compose build --api --worker --web_ui --nginx --redis
 print_status "Docker images built successfully"
 
 # Step 5: Start services
@@ -146,7 +146,7 @@ echo ""
 echo "Step 5: Starting services..."
 
 docker compose down 2>/dev/null || true
-docker compose up -d
+docker compose up -d api worker web_ui nginx redis
 
 # Wait for services to start
 sleep 5
