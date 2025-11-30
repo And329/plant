@@ -1,15 +1,15 @@
 {
-    "api_base_url": "http://192.168.51.134:8000",
-    "device_id": "b46c31bb-2c23-4f4d-b005-e1494b9d7c9b",
-    "device_secret": "sUPqFQ4JpSOnaS6BDoPtaonwo9tNp6H-4j1QwFWNB2U",
+    "api_base_url": "http://192.168.8.109:8000",
+    "device_id": "4b2ccdda-f323-468c-a8ff-351e697ff4b8",
+    "device_secret": "9ex_vT0OmhErLLGIrmeAAEa8eW6q1gjghiZbn-AcaWk",
     "sensor_ids": {
-        "soil_moisture": "fec8a6d0-a705-4c94-8d2c-7e8aa7769374",
-        "air_temperature": "84c9ce09-35c2-495a-9e05-00a2ae31ac66",
-        "water_level": "c183f00d-00fe-48a2-90e3-f90f26792c02"
+        "soil_moisture": "7dda3184-0f0e-4fd7-bfd8-2860af7dddd3",
+        "air_temperature": "214eaf86-182a-4951-9abc-50352ec7f3e8",
+        "water_level": "e1708f22-5620-4ff2-a154-52bff9df19a7"
     },
     "actuator_ids": {
-        "pump": "011fe953-acb3-4407-a9ff-23a4b4d777cd",
-        "lamp": "c86fdb71-9bc2-4393-af6d-19893de1c6c2"
+        "pump": "7cb683dc-7510-43de-a1b7-36e79792b827",
+        "lamp": "c4e3fab6-bb52-43e1-8b7d-5f292fc06880"
     },
     "telemetry_interval": 60,
     "command_interval": 5
