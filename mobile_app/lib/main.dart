@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -38,7 +39,8 @@ class PlantApp extends StatefulWidget {
 }
 
 class _PlantAppState extends State<PlantApp> {
-  String? _baseUrl = 'https://rt.329.run:8443';
+  bool _hydrating = true;
+  String? _baseUrl = null;
   String _token = "";
   bool _isAdmin = false;
 
@@ -60,6 +62,9 @@ class _PlantAppState extends State<PlantApp> {
         _isAdmin = isAdmin ?? false;
       });
     }
+    setState(() {
+      _hydrating = false;
+    });
   }
 
   Future<void> _saveSession(String base, String token, bool isAdmin) async {
@@ -84,6 +89,22 @@ class _PlantAppState extends State<PlantApp> {
 
   @override
   Widget build(BuildContext context) {
+    if (_hydrating) {
+      return MaterialApp(
+        title: 'Plant Automation',
+        theme: ThemeData(
+          brightness: Brightness.light,
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: const Color(0xFF16a34a),
+            brightness: Brightness.light,
+          ),
+        ),
+        home: const Scaffold(
+          body: Center(child: CircularProgressIndicator()),
+        ),
+      );
+    }
+
     final theme = ThemeData(
       brightness: Brightness.light,
       colorScheme: ColorScheme.fromSeed(
@@ -585,12 +606,33 @@ class DeviceListScreen extends StatefulWidget {
 
 class _DeviceListScreenState extends State<DeviceListScreen> {
   late Future<List<Device>> _future;
+  Timer? _pollTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    // Start automatic polling every 60 seconds (matching web UI behavior)
+    _pollTimer = Timer.periodic(const Duration(seconds: 60), (_) {
+      if (mounted) {
+        final cfg = AppConfig.of(context)!;
+        setState(() {
+          _future = ApiClient(cfg.baseUrl, cfg.token).fetchDevices();
+        });
+      }
+    });
+  }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     final cfg = AppConfig.of(context)!;
     _future = ApiClient(cfg.baseUrl, cfg.token).fetchDevices();
+  }
+
+  @override
+  void dispose() {
+    _pollTimer?.cancel();
+    super.dispose();
   }
 
   @override
@@ -617,131 +659,161 @@ class _DeviceListScreenState extends State<DeviceListScreen> {
           if (devices.isEmpty) {
             return const Center(child: Text('No devices yet.'));
           }
-          return ListView.separated(
-            padding: const EdgeInsets.all(12),
-            itemCount: devices.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 10),
-            itemBuilder: (context, index) {
-              final d = devices[index];
-              final connected = d.status.toLowerCase().contains('active') ||
-                  d.status.toLowerCase().contains('online');
-              return Card(
-                elevation: 2,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(16),
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => AppConfig(
-                        baseUrl: cfg.baseUrl,
-                        token: cfg.token,
-                        isAdmin: cfg.isAdmin,
-                        child: DeviceDetailScreen(deviceId: d.id, name: d.name),
+          return RefreshIndicator(
+            onRefresh: () async {
+              setState(() {
+                _future = ApiClient(cfg.baseUrl, cfg.token).fetchDevices();
+              });
+              await _future;
+            },
+            child: ListView.separated(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(12),
+              itemCount: devices.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 10),
+              itemBuilder: (context, index) {
+                final d = devices[index];
+                const offlineThresholdSeconds = 120; // match backend/web default
+                final lastSeen = d.lastSeen != null ? DateTime.tryParse(d.lastSeen!) : null;
+
+                // Debug logging
+                print('Device: ${d.name}');
+                print('  lastSeen string: ${d.lastSeen}');
+                print('  lastSeen parsed: $lastSeen');
+                print('  status field: ${d.status}');
+
+                final connected = () {
+                  if (lastSeen != null) {
+                    final age = DateTime.now().toUtc().difference(lastSeen.toUtc());
+                    print('  age: ${age.inSeconds} seconds');
+                    if (age.inSeconds <= offlineThresholdSeconds) {
+                      print('  -> ONLINE (by lastSeen)');
+                      return true;
+                    }
+                  }
+                  final status = d.status.toLowerCase();
+                  final result = status.contains('active') || status.contains('online');
+                  print('  -> ${result ? "ONLINE" : "OFFLINE"} (by status field)');
+                  return result;
+                }();
+                return Card(
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(16),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => AppConfig(
+                          baseUrl: cfg.baseUrl,
+                          token: cfg.token,
+                          isAdmin: cfg.isAdmin,
+                          child: DeviceDetailScreen(deviceId: d.id, name: d.name),
+                        ),
                       ),
                     ),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Row(
-                      children: [
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Row(
+                        children: [
                         Container(
                           width: 50,
                           height: 50,
                           decoration: BoxDecoration(
-                            color: connected ? const Color(0xFF16a34a).withOpacity(0.1) : Colors.grey.shade200,
+                            color: connected ? const Color(0xFF16a34a).withOpacity(0.12) : Colors.grey.shade200,
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Icon(
-                            Icons.devices,
+                            Icons.local_florist_rounded,
                             color: connected ? const Color(0xFF16a34a) : Colors.grey,
                             size: 28,
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                d.name,
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  d.name,
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                d.model ?? 'Unknown model',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: Colors.grey.shade600,
-                                ),
-                              ),
-                              if (d.lastSeen != null) ...[
                                 const SizedBox(height: 4),
                                 Text(
-                                  'Last seen: ${d.lastSeen}',
+                                  d.model ?? 'Unknown model',
                                   style: TextStyle(
-                                    fontSize: 11,
-                                    color: Colors.grey.shade500,
+                                    fontSize: 13,
+                                    color: Colors.grey.shade600,
                                   ),
+                                ),
+                                if (lastSeen != null) ...[
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Last seen: ${_formatTimeSince(lastSeen)}',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: Colors.grey.shade500,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              _StatusPill(
+                                text: connected ? 'Online' : 'Offline',
+                                color: connected ? Colors.green : Colors.grey,
+                              ),
+                              if (cfg.isAdmin) ...[
+                                const SizedBox(height: 8),
+                                IconButton(
+                                  icon: const Icon(Icons.delete_outline, size: 20),
+                                  color: Colors.red.shade400,
+                                  constraints: const BoxConstraints(),
+                                  padding: EdgeInsets.zero,
+                                  onPressed: () async {
+                                    final confirmed = await showDialog<bool>(
+                                          context: context,
+                                          builder: (ctx) => AlertDialog(
+                                            title: const Text('Delete device'),
+                                            content: Text('Delete ${d.name}?'),
+                                            actions: [
+                                              TextButton(
+                                                  onPressed: () => Navigator.pop(ctx, false),
+                                                  child: const Text('Cancel')),
+                                              TextButton(
+                                                  onPressed: () => Navigator.pop(ctx, true),
+                                                  child: const Text('Delete')),
+                                            ],
+                                          ),
+                                        ) ??
+                                        false;
+                                    if (!confirmed) return;
+                                    try {
+                                      await ApiClient(cfg.baseUrl, cfg.token).deleteDevice(d.id);
+                                      setState(() {
+                                        _future = ApiClient(cfg.baseUrl, cfg.token).fetchDevices();
+                                      });
+                                    } catch (_) {}
+                                  },
                                 ),
                               ],
                             ],
                           ),
-                        ),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            _StatusPill(
-                              text: connected ? 'Online' : 'Offline',
-                              color: connected ? Colors.green : Colors.grey,
-                            ),
-                            if (cfg.isAdmin) ...[
-                              const SizedBox(height: 8),
-                              IconButton(
-                                icon: const Icon(Icons.delete_outline, size: 20),
-                                color: Colors.red.shade400,
-                                constraints: const BoxConstraints(),
-                                padding: EdgeInsets.zero,
-                                onPressed: () async {
-                                  final confirmed = await showDialog<bool>(
-                                        context: context,
-                                        builder: (ctx) => AlertDialog(
-                                          title: const Text('Delete device'),
-                                          content: Text('Delete ${d.name}?'),
-                                          actions: [
-                                            TextButton(
-                                                onPressed: () => Navigator.pop(ctx, false),
-                                                child: const Text('Cancel')),
-                                            TextButton(
-                                                onPressed: () => Navigator.pop(ctx, true),
-                                                child: const Text('Delete')),
-                                          ],
-                                        ),
-                                      ) ??
-                                      false;
-                                  if (!confirmed) return;
-                                  try {
-                                    await ApiClient(cfg.baseUrl, cfg.token).deleteDevice(d.id);
-                                    setState(() {
-                                      _future = ApiClient(cfg.baseUrl, cfg.token).fetchDevices();
-                                    });
-                                  } catch (_) {}
-                                },
-                              ),
-                            ],
-                          ],
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              );
-            },
+                );
+              },
+            ),
           );
         },
     );
@@ -1462,6 +1534,23 @@ class _StatusPill extends StatelessWidget {
         style: TextStyle(color: c),
       ),
     );
+  }
+}
+
+// Helper function to format time difference
+String _formatTimeSince(DateTime dateTime) {
+  final now = DateTime.now().toUtc();
+  final dt = dateTime.toUtc();
+  final diff = now.difference(dt);
+
+  if (diff.inSeconds < 60) {
+    return '${diff.inSeconds}s ago';
+  } else if (diff.inMinutes < 60) {
+    return '${diff.inMinutes}m ago';
+  } else if (diff.inHours < 24) {
+    return '${diff.inHours}h ago';
+  } else {
+    return '${diff.inDays}d ago';
   }
 }
 
